@@ -53,6 +53,28 @@ A produced finding matches an expected one when the rule id is equal and both th
 locations are equal (same file, same line). Each expected finding can be matched once. Only findings at `low` severity or above count as produced
 findings; `info` findings are notes, not claims that the case is vulnerable.
 
+## Locations
+
+An expected `source` and `sink` is the `file:line` of the first and last node on the finding's path. Each
+kind of node has one fixed line:
+
+| Node | Line |
+|---|---|
+| Workflow trigger (source) | the trigger's name under `on:`: its key, its list item, or the `on:` line for `on: issues` |
+| Job | the job's key under `jobs:` |
+| Step | the step's list item (the `- ` line) |
+| `run:` script (`sink.code_exec`) | the `run:` key |
+| Agent command execution (`sink.code_exec`) | the `with:` input that allows the shell tool, e.g. `claude_args:` or `settings:` |
+| Secret (`sink.secret.read`) | the `env:` or `with:` key whose value references `secrets.*` |
+| Token permission (`sink.repo.write`, `sink.deploy`, `sink.secret.read` for `id-token`) | the first write scope of that category under the effective `permissions:`; the `permissions:` line for `write-all`; the job key when no permissions are declared |
+| Controls | the `if:`, `environment:` or (for input isolation) `run:` key |
+| MCP client (`carrier.llm_agent`) | the `mcpServers` or `servers` key |
+| MCP server and each of its catalogued capabilities | the server's key |
+| Hardcoded MCP secret | the key under the server's `env` or `headers` |
+
+For TM004 the sink is the outbound-network capability; the sensitive access is reported separately and is
+not part of matching.
+
 ## Metrics
 
 | Metric | Definition |
