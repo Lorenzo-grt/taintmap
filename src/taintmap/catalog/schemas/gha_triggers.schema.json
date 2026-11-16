@@ -1,0 +1,124 @@
+{
+  "$defs": {
+    "Context": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z_]+(\\.([A-Za-z0-9_-]+|\\*))+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_category": {
+          "$ref": "#/$defs/SourceCategory"
+        },
+        "triggers": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Triggers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "source_category",
+        "triggers",
+        "evidence"
+      ],
+      "title": "Context",
+      "type": "object"
+    },
+    "SourceCategory": {
+      "description": "Where untrusted input enters.",
+      "enum": [
+        "source.untrusted.issue_text",
+        "source.untrusted.pr_content",
+        "source.untrusted.discussion",
+        "source.untrusted.web_content",
+        "source.untrusted.email",
+        "source.untrusted.chat",
+        "source.untrusted.file_upload",
+        "source.untrusted.webhook"
+      ],
+      "title": "SourceCategory",
+      "type": "string"
+    },
+    "Trigger": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_category": {
+          "$ref": "#/$defs/SourceCategory"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "source_category",
+        "evidence"
+      ],
+      "title": "Trigger",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/aakashsiwach/taintmap/schemas/gha_triggers.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contexts": {
+      "items": {
+        "$ref": "#/$defs/Context"
+      },
+      "title": "Contexts",
+      "type": "array"
+    },
+    "triggers": {
+      "items": {
+        "$ref": "#/$defs/Trigger"
+      },
+      "title": "Triggers",
+      "type": "array"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "triggers",
+    "contexts"
+  ],
+  "title": "GhaTriggersCatalog",
+  "type": "object"
+}

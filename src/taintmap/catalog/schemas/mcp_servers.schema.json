@@ -1,0 +1,183 @@
+{
+  "$defs": {
+    "Capability": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceCategory"
+            },
+            {
+              "$ref": "#/$defs/SinkCategory"
+            }
+          ],
+          "title": "Category"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "tools": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Tools",
+          "type": "array"
+        }
+      },
+      "required": [
+        "category",
+        "description",
+        "tools"
+      ],
+      "title": "Capability",
+      "type": "object"
+    },
+    "McpServer": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "match": {
+          "$ref": "#/$defs/ServerMatch"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "match",
+        "capabilities",
+        "evidence"
+      ],
+      "title": "McpServer",
+      "type": "object"
+    },
+    "ServerMatch": {
+      "additionalProperties": false,
+      "properties": {
+        "images": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Images",
+          "type": "array"
+        },
+        "packages": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Packages",
+          "type": "array"
+        },
+        "urls": {
+          "items": {
+            "pattern": "^https://[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Urls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "packages",
+        "images",
+        "urls"
+      ],
+      "title": "ServerMatch",
+      "type": "object"
+    },
+    "SinkCategory": {
+      "description": "Capabilities and sinks: what can cause harm.",
+      "enum": [
+        "sink.code_exec",
+        "sink.repo.write",
+        "sink.secret.read",
+        "sink.data.write",
+        "sink.data.read_sensitive",
+        "sink.network.outbound",
+        "sink.deploy",
+        "sink.payment"
+      ],
+      "title": "SinkCategory",
+      "type": "string"
+    },
+    "SourceCategory": {
+      "description": "Where untrusted input enters.",
+      "enum": [
+        "source.untrusted.issue_text",
+        "source.untrusted.pr_content",
+        "source.untrusted.discussion",
+        "source.untrusted.web_content",
+        "source.untrusted.email",
+        "source.untrusted.chat",
+        "source.untrusted.file_upload",
+        "source.untrusted.webhook"
+      ],
+      "title": "SourceCategory",
+      "type": "string"
+    }
+  },
+  "$id": "https://github.com/aakashsiwach/taintmap/schemas/mcp_servers.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "servers": {
+      "items": {
+        "$ref": "#/$defs/McpServer"
+      },
+      "title": "Servers",
+      "type": "array"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "servers"
+  ],
+  "title": "McpServersCatalog",
+  "type": "object"
+}

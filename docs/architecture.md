@@ -118,8 +118,11 @@ small pull request:
 - `src/taintmap/catalog/gha_triggers.yaml`: workflow triggers and expression contexts that carry
   untrusted input.
 
-Each catalog entry has an id, a description, the evidence it relies on (a documentation link), and the
-taxonomy categories it maps to. A JSON schema for each catalog is checked in CI.
+Each catalog entry has an id, a description, the evidence it relies on (an `evidence` field with a
+documentation link), and the taxonomy categories it maps to. The structure is defined by Pydantic models in
+`src/taintmap/catalog/__init__.py`; the JSON schemas in `src/taintmap/catalog/schemas/` are generated from
+them with `python -m taintmap.catalog`, and a test fails when the checked-in schemas are out of date or an
+entry does not validate.
 
 ## Rules
 

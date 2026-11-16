@@ -1,0 +1,67 @@
+# GitHub Actions that run an AI agent.
+#
+# `uses` is matched against a step's `uses:` value without the `@ref` suffix (case-insensitive).
+# Input names are copied from each action's own action.yml. Never guess an input name: if it is not
+# in the action's action.yml or README, leave it out.
+#
+# - prompt_inputs: inputs whose value becomes part of the agent's prompt or context
+# - tool_config_inputs: inputs that set which tools the agent may use (allow-lists, settings)
+# - credential_inputs: inputs that hand the agent a credential
+# - sandbox_inputs: inputs that confine what the agent's process can do
+# - actor_gate_inputs: inputs that widen or narrow who may trigger the agent
+# - reads_event: true when the action reads the triggering issue, pull request or comment itself,
+#   so untrusted event text reaches the agent even without an expression in `prompt_inputs`
+#
+# Schema: schemas/ai_actions.schema.json. Every entry needs an `evidence` link.
+version: 1
+
+actions:
+  - id: claude-code-action
+    uses: anthropics/claude-code-action
+    description: Runs Claude Code in a workflow; responds to @claude mentions, issue assignments and explicit prompts.
+    category: carrier.llm_agent
+    prompt_inputs: [prompt]
+    tool_config_inputs: [claude_args, settings]
+    credential_inputs:
+      - anthropic_api_key
+      - claude_code_oauth_token
+      - github_token
+      - ssh_signing_key
+    sandbox_inputs: []
+    actor_gate_inputs: [allowed_bots, allowed_non_write_users]
+    reads_event: true
+    evidence: https://github.com/anthropics/claude-code-action/blob/main/action.yml
+    notes: >-
+      Allowed tools are passed as `--allowedTools` inside `claude_args`, or as a `permissions`
+      allow list inside `settings` (docs/configuration.md). The README describes the action as
+      responding to @claude mentions in comments and to issue assignments.
+
+  - id: codex-action
+    uses: openai/codex-action
+    description: Runs OpenAI Codex (`codex exec`) in a workflow.
+    category: carrier.llm_agent
+    prompt_inputs: [prompt, prompt-file]
+    tool_config_inputs: [codex-args, permission-profile]
+    credential_inputs: [openai-api-key]
+    sandbox_inputs: [sandbox, permission-profile, safety-strategy]
+    actor_gate_inputs: [allow-users, allow-bots, allow-bot-users]
+    reads_event: false
+    evidence: https://github.com/openai/codex-action/blob/main/action.yml
+    notes: >-
+      `safety-strategy` defaults to `drop-sudo`; `read-only` forces the read-only sandbox and
+      `unsafe` removes privilege reduction (README). Only users with write access may trigger the
+      action unless `allow-users` widens it.
+
+  - id: run-gemini-cli
+    uses: google-github-actions/run-gemini-cli
+    description: Runs the Gemini CLI in a workflow.
+    category: carrier.llm_agent
+    prompt_inputs: [prompt]
+    tool_config_inputs: [settings, extensions]
+    credential_inputs: [gemini_api_key, google_api_key]
+    sandbox_inputs: []
+    actor_gate_inputs: []
+    reads_event: false
+    evidence: https://github.com/google-github-actions/run-gemini-cli/blob/main/action.yml
+    notes: >-
+      `settings` is written to `.gemini/settings.json` as the CLI's project settings.

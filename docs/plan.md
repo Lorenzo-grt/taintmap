@@ -62,16 +62,16 @@ and JSON round-trip.
 **Acceptance:** taxonomy test passes; docs and code cannot drift silently.
 
 ### T5. Catalogs
-- [ ] `catalog/gha_triggers.yaml`: untrusted triggers (`issues`, `issue_comment`, `pull_request_target`,
+- [x] `catalog/gha_triggers.yaml`: untrusted triggers (`issues`, `issue_comment`, `pull_request_target`,
       `discussion`, `discussion_comment`, `pull_request_review_comment`, `workflow_run`) and untrusted
       expression contexts (`github.event.issue.title`, `.body`, `github.event.comment.body`,
       `github.event.pull_request.title`, `.body`, `.head.ref`, and similar), each with a documentation link.
-- [ ] `catalog/ai_actions.yaml`: GitHub Actions that run AI agents. Start with entries you can verify
+- [x] `catalog/ai_actions.yaml`: GitHub Actions that run AI agents. Start with entries you can verify
       from the action's own README (inputs that carry the prompt, tool allow-lists, and credentials).
       Each entry needs a source link. Do not guess input names.
-- [ ] `catalog/mcp_servers.yaml`: well-known MCP servers matched by package name or command, with
+- [x] `catalog/mcp_servers.yaml`: well-known MCP servers matched by package name or command, with
       capabilities mapped to taxonomy categories. Each entry needs a source link.
-- [ ] JSON schemas for the catalogs and a test that validates every entry.
+- [x] JSON schemas for the catalogs and a test that validates every entry.
 
 **Acceptance:** schema tests pass; every entry has a source link.
 

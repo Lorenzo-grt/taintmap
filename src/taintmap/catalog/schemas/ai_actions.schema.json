@@ -1,0 +1,133 @@
+{
+  "$defs": {
+    "AiAction": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_gate_inputs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Actor Gate Inputs",
+          "type": "array"
+        },
+        "category": {
+          "const": "carrier.llm_agent",
+          "title": "Category",
+          "type": "string"
+        },
+        "credential_inputs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Credential Inputs",
+          "type": "array"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Evidence",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "prompt_inputs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Prompt Inputs",
+          "type": "array"
+        },
+        "reads_event": {
+          "title": "Reads Event",
+          "type": "boolean"
+        },
+        "sandbox_inputs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Sandbox Inputs",
+          "type": "array"
+        },
+        "tool_config_inputs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Tool Config Inputs",
+          "type": "array"
+        },
+        "uses": {
+          "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+$",
+          "title": "Uses",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "uses",
+        "description",
+        "category",
+        "prompt_inputs",
+        "tool_config_inputs",
+        "credential_inputs",
+        "sandbox_inputs",
+        "actor_gate_inputs",
+        "reads_event",
+        "evidence"
+      ],
+      "title": "AiAction",
+      "type": "object"
+    }
+  },
+  "$id": "https://github.com/aakashsiwach/taintmap/schemas/ai_actions.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "items": {
+        "$ref": "#/$defs/AiAction"
+      },
+      "title": "Actions",
+      "type": "array"
+    },
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "version",
+    "actions"
+  ],
+  "title": "AiActionsCatalog",
+  "type": "object"
+}
