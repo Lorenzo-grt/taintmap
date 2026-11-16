@@ -32,8 +32,12 @@
           "type": "string"
         },
         "evidence": {
-          "pattern": "^https://[^\\s]+$",
-          "title": "Evidence",
+          "$ref": "#/$defs/Evidence"
+        },
+        "evidence_reason": {
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "title": "Evidence Reason",
           "type": "string"
         },
         "id": {
@@ -66,6 +70,31 @@
           "title": "Reads Event",
           "type": "boolean"
         },
+        "reads_event_evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Evidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reads_event_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reads Event Reason"
+        },
         "sandbox_inputs": {
           "items": {
             "minLength": 1,
@@ -74,6 +103,11 @@
           },
           "title": "Sandbox Inputs",
           "type": "array"
+        },
+        "source_url": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Source Url",
+          "type": "string"
         },
         "tool_config_inputs": {
           "items": {
@@ -91,6 +125,9 @@
         }
       },
       "required": [
+        "source_url",
+        "evidence",
+        "evidence_reason",
         "id",
         "uses",
         "description",
@@ -100,11 +137,19 @@
         "credential_inputs",
         "sandbox_inputs",
         "actor_gate_inputs",
-        "reads_event",
-        "evidence"
+        "reads_event"
       ],
       "title": "AiAction",
       "type": "object"
+    },
+    "Evidence": {
+      "description": "How firmly a catalog claim is backed by its source.",
+      "enum": [
+        "documented",
+        "inferred"
+      ],
+      "title": "Evidence",
+      "type": "string"
     }
   },
   "$id": "https://github.com/aakashsiwach/taintmap/schemas/ai_actions.schema.json",

@@ -9,8 +9,12 @@
           "type": "string"
         },
         "evidence": {
-          "pattern": "^https://[^\\s]+$",
-          "title": "Evidence",
+          "$ref": "#/$defs/Evidence"
+        },
+        "evidence_reason": {
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "title": "Evidence Reason",
           "type": "string"
         },
         "id": {
@@ -20,6 +24,11 @@
         },
         "source_category": {
           "$ref": "#/$defs/SourceCategory"
+        },
+        "source_url": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Source Url",
+          "type": "string"
         },
         "triggers": {
           "items": {
@@ -33,14 +42,25 @@
         }
       },
       "required": [
+        "source_url",
+        "evidence",
+        "evidence_reason",
         "id",
         "description",
         "source_category",
-        "triggers",
-        "evidence"
+        "triggers"
       ],
       "title": "Context",
       "type": "object"
+    },
+    "Evidence": {
+      "description": "How firmly a catalog claim is backed by its source.",
+      "enum": [
+        "documented",
+        "inferred"
+      ],
+      "title": "Evidence",
+      "type": "string"
     },
     "SourceCategory": {
       "description": "Where untrusted input enters.",
@@ -66,8 +86,12 @@
           "type": "string"
         },
         "evidence": {
-          "pattern": "^https://[^\\s]+$",
-          "title": "Evidence",
+          "$ref": "#/$defs/Evidence"
+        },
+        "evidence_reason": {
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "title": "Evidence Reason",
           "type": "string"
         },
         "id": {
@@ -78,13 +102,20 @@
         },
         "source_category": {
           "$ref": "#/$defs/SourceCategory"
+        },
+        "source_url": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Source Url",
+          "type": "string"
         }
       },
       "required": [
+        "source_url",
+        "evidence",
+        "evidence_reason",
         "id",
         "description",
-        "source_category",
-        "evidence"
+        "source_category"
       ],
       "title": "Trigger",
       "type": "object"

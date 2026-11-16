@@ -138,8 +138,13 @@ small pull request:
 - `src/taintmap/catalog/gha_triggers.yaml`: workflow triggers and expression contexts that carry
   untrusted input.
 
-Each catalog entry has an id, a description, the evidence it relies on (an `evidence` field with a
-documentation link), and the taxonomy categories it maps to. The structure is defined by Pydantic models in
+Each catalog entry has an id, a description, a `source_url` (the documentation it relies on), an
+`evidence` level with a one-line `evidence_reason`, and the taxonomy categories it maps to. `evidence` is
+`documented` when the source states the claim and `inferred` when it is taintmap's reading of the source.
+Claims inside an entry that are less certain than the entry carry their own level: each MCP capability,
+and an AI action's `reads_event` (for example, `claude-code-action` reading the triggering comment is
+inferred). Graph nodes and edges built from an inferred claim carry `attrs.evidence = "inferred"`, and
+reports mark findings whose path depends on one as inferred. The structure is defined by Pydantic models in
 `src/taintmap/catalog/__init__.py`; the JSON schemas in `src/taintmap/catalog/schemas/` are generated from
 them with `python -m taintmap.catalog`, and a test fails when the checked-in schemas are out of date or an
 entry does not validate.

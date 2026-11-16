@@ -351,7 +351,11 @@ class _Workflow:
             trigger = catalog.gha_triggers().trigger(name)
             if trigger is None:
                 continue
-            attrs: dict[str, Any] = {"trigger": name, "evidence": trigger.evidence}
+            attrs: dict[str, Any] = {
+                "trigger": name,
+                "source_url": trigger.source_url,
+                "evidence": trigger.evidence.value,
+            }
             if types:
                 attrs["types"] = types
             self.sources[name] = self.node(
@@ -552,7 +556,8 @@ class _Workflow:
             attrs["uses"] = uses
         if action:
             attrs["ai_action"] = action.id
-            attrs["evidence"] = action.evidence
+            attrs["source_url"] = action.source_url
+            attrs["evidence"] = action.evidence.value
         label = attrs.get("name") or uses or "run"
         category = CarrierCategory.LLM_AGENT if action else CarrierCategory.WORKFLOW_STEP
         self.node(step_id, NodeKind.CARRIER, category.value, str(label), line, **attrs)

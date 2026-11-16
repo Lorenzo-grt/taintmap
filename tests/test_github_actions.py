@@ -135,7 +135,8 @@ def test_catalogued_ai_action_is_llm_agent() -> None:
     agent = p.node("job:triage:step:1")
     assert agent.category == "carrier.llm_agent"
     assert agent.attrs["ai_action"] == "claude-code-action"
-    assert agent.attrs["evidence"].startswith("https://")
+    assert agent.attrs["source_url"].startswith("https://")
+    assert agent.attrs["evidence"] == "documented"
     assert agent.location.line == 10
 
 

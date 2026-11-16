@@ -19,6 +19,15 @@
           "title": "Description",
           "type": "string"
         },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "evidence_reason": {
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "title": "Evidence Reason",
+          "type": "string"
+        },
         "tools": {
           "items": {
             "minLength": 1,
@@ -31,11 +40,22 @@
       },
       "required": [
         "category",
+        "evidence",
+        "evidence_reason",
         "description",
         "tools"
       ],
       "title": "Capability",
       "type": "object"
+    },
+    "Evidence": {
+      "description": "How firmly a catalog claim is backed by its source.",
+      "enum": [
+        "documented",
+        "inferred"
+      ],
+      "title": "Evidence",
+      "type": "string"
     },
     "McpServer": {
       "additionalProperties": false,
@@ -53,8 +73,12 @@
           "type": "string"
         },
         "evidence": {
-          "pattern": "^https://[^\\s]+$",
-          "title": "Evidence",
+          "$ref": "#/$defs/Evidence"
+        },
+        "evidence_reason": {
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "title": "Evidence Reason",
           "type": "string"
         },
         "id": {
@@ -76,14 +100,21 @@
           ],
           "default": null,
           "title": "Notes"
+        },
+        "source_url": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Source Url",
+          "type": "string"
         }
       },
       "required": [
+        "source_url",
+        "evidence",
+        "evidence_reason",
         "id",
         "description",
         "match",
-        "capabilities",
-        "evidence"
+        "capabilities"
       ],
       "title": "McpServer",
       "type": "object"

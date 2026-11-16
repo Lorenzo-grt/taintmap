@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from enum import StrEnum
 from functools import cache
 from importlib import resources
 from pathlib import Path
@@ -34,6 +35,27 @@ class _Model(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
+class Evidence(StrEnum):
+    """How firmly a catalog claim is backed by its source."""
+
+    DOCUMENTED = "documented"
+    """The cited source states it."""
+
+    INFERRED = "inferred"
+    """taintmap's reading of the source; reports mark findings that depend on it."""
+
+
+Reason = Annotated[str, StringConstraints(min_length=1, pattern=r"^[^\n]+$")]
+
+
+class _Sourced(_Model):
+    """A catalog entry with a source link and how firmly the source backs it."""
+
+    source_url: Url
+    evidence: Evidence
+    evidence_reason: Reason
+
+
 def _unique(values: list[str], what: str) -> None:
     seen: set[str] = set()
     for value in values:
@@ -45,19 +67,17 @@ def _unique(values: list[str], what: str) -> None:
 # -- GitHub Actions triggers and contexts ---------------------------------------------------------
 
 
-class Trigger(_Model):
+class Trigger(_Sourced):
     id: Name
     description: str = Field(min_length=1)
     source_category: SourceCategory
-    evidence: Url
 
 
-class Context(_Model):
+class Context(_Sourced):
     id: Annotated[str, StringConstraints(pattern=r"^[a-z_]+(\.([A-Za-z0-9_-]+|\*))+$")]
     description: str = Field(min_length=1)
     source_category: SourceCategory
     triggers: list[Name] = Field(min_length=1)
-    evidence: Url
 
     def matches(self, path: str) -> bool:
         """True when the dot-form expression path ``path`` is this context or lies inside it."""
@@ -95,7 +115,7 @@ class GhaTriggersCatalog(_Model):
 # -- AI actions -----------------------------------------------------------------------------------
 
 
-class AiAction(_Model):
+class AiAction(_Sourced):
     id: Id
     uses: Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_./-]+$")]
     description: str = Field(min_length=1)
@@ -106,13 +126,16 @@ class AiAction(_Model):
     sandbox_inputs: list[Name]
     actor_gate_inputs: list[Name]
     reads_event: bool
-    evidence: Url
+    reads_event_evidence: Evidence | None = None
+    reads_event_reason: Reason | None = None
     notes: str | None = None
 
     @model_validator(mode="after")
     def _check(self) -> AiAction:
         if not self.prompt_inputs and not self.reads_event:
             raise ValueError(f"{self.id}: an AI action needs prompt_inputs or reads_event")
+        if self.reads_event and (self.reads_event_evidence is None or not self.reads_event_reason):
+            raise ValueError(f"{self.id}: reads_event needs reads_event_evidence and a reason")
         for field in (
             "prompt_inputs",
             "tool_config_inputs",
@@ -159,16 +182,17 @@ class ServerMatch(_Model):
 
 class Capability(_Model):
     category: CapabilityCategory
+    evidence: Evidence
+    evidence_reason: Reason
     description: str = Field(min_length=1)
     tools: list[Name]
 
 
-class McpServer(_Model):
+class McpServer(_Sourced):
     id: Id
     description: str = Field(min_length=1)
     match: ServerMatch
     capabilities: list[Capability]
-    evidence: Url
     notes: str | None = None
 
     @model_validator(mode="after")

@@ -10,7 +10,11 @@
 # content that outsiders can write, or a `sink.*` category when a tool can cause harm. `tools` lists
 # tool names copied from the server's README; it may be empty when the README does not list them.
 #
-# Schema: schemas/mcp_servers.schema.json. Every entry needs an `evidence` link.
+# Every entry and every capability needs an `evidence` level (documented: the source says it;
+# inferred: taintmap's reading of the source) and a one-line `evidence_reason`; every entry needs a
+# `source_url`.
+#
+# Schema: schemas/mcp_servers.schema.json.
 version: 1
 
 servers:
@@ -22,21 +26,33 @@ servers:
       urls: [https://api.githubcopilot.com/mcp/]
     capabilities:
       - category: source.untrusted.issue_text
+        evidence: documented
+        evidence_reason: The README lists these issue-reading tools.
         description: Reads issues and issue comments written by anyone who can open an issue.
         tools: [issue_read, list_issues, search_issues]
       - category: source.untrusted.pr_content
+        evidence: inferred
+        evidence_reason: pull_requests is a default toolset; the tool names were not checked.
         description: Reads pull requests, which may come from forks.
         tools: []
       - category: sink.repo.write
+        evidence: documented
+        evidence_reason: The README lists these write tools.
         description: Creates and edits issues, comments, labels and pull requests.
         tools: [issue_write, add_issue_comment, update_issue_comment, sub_issue_write, label_write, create_pull_request]
       - category: sink.data.read_sensitive
+        evidence: inferred
+        evidence_reason: The server acts with the token's access, which can include private repositories.
         description: Reads repositories the token can access, including private ones.
         tools: []
       - category: sink.network.outbound
+        evidence: inferred
+        evidence_reason: Posting public content lets data leave; the README does not frame it that way.
         description: Posts issues, comments and pull requests where other people can read them.
         tools: [issue_write, add_issue_comment, create_pull_request]
-    evidence: https://github.com/github/github-mcp-server/blob/main/README.md
+    source_url: https://github.com/github/github-mcp-server/blob/main/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
     notes: >-
       Default toolsets are context, repos, issues, pull_requests and users. `--read-only` and
       `--toolsets` (or GITHUB_TOOLSETS) narrow what is exposed.
@@ -49,21 +65,33 @@ servers:
       urls: []
     capabilities:
       - category: source.untrusted.issue_text
+        evidence: documented
+        evidence_reason: The README lists these tools.
         description: Reads issues written by anyone who can open an issue.
         tools: [get_issue, list_issues, search_issues]
       - category: source.untrusted.pr_content
+        evidence: documented
+        evidence_reason: The README lists these tools.
         description: Reads pull requests, their files and comments.
         tools: [get_pull_request, get_pull_request_files, get_pull_request_comments, get_pull_request_reviews]
       - category: sink.repo.write
+        evidence: documented
+        evidence_reason: The README lists these tools.
         description: Writes files, pushes, creates branches and merges pull requests.
         tools: [create_or_update_file, push_files, create_branch, create_repository, fork_repository, merge_pull_request, update_issue, update_pull_request_branch, create_pull_request_review]
       - category: sink.data.read_sensitive
+        evidence: inferred
+        evidence_reason: The tools read with the token's access, which can include private repositories.
         description: Reads file contents and searches code in repositories the token can access.
         tools: [get_file_contents, search_code, list_commits]
       - category: sink.network.outbound
+        evidence: inferred
+        evidence_reason: Posting public content lets data leave; the README does not frame it that way.
         description: Posts issues, comments and pull requests where other people can read them.
         tools: [create_issue, add_issue_comment, create_pull_request]
-    evidence: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/github/README.md
+    source_url: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/github/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
 
   - id: filesystem
     description: Reference filesystem server limited to the allowed directories given as arguments.
@@ -73,12 +101,18 @@ servers:
       urls: []
     capabilities:
       - category: sink.data.write
+        evidence: documented
+        evidence_reason: The README lists these write tools.
         description: Writes, edits, moves and copies files in the allowed directories.
         tools: [write_file, append_file, edit_file, create_directory, move_file, copy_file]
       - category: sink.data.read_sensitive
+        evidence: inferred
+        evidence_reason: Allowed directories may contain credentials or private data.
         description: Reads any file in the allowed directories, which may hold credentials.
         tools: [read_text_file, read_media_file, read_multiple_files, search_files]
-    evidence: https://github.com/modelcontextprotocol/servers/blob/main/src/filesystem/README.md
+    source_url: https://github.com/modelcontextprotocol/servers/blob/main/src/filesystem/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
 
   - id: git
     description: Reference Git server that reads and changes a local repository.
@@ -88,9 +122,13 @@ servers:
       urls: []
     capabilities:
       - category: sink.data.write
+        evidence: documented
+        evidence_reason: The README lists these tools.
         description: Stages, commits, resets, creates branches, checks out and merges in the local repository.
         tools: [git_add, git_commit, git_reset, git_create_branch, git_checkout, git_merge]
-    evidence: https://github.com/modelcontextprotocol/servers/blob/main/src/git/README.md
+    source_url: https://github.com/modelcontextprotocol/servers/blob/main/src/git/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
 
   - id: fetch
     description: Reference server that fetches web pages and converts them for the model.
@@ -100,12 +138,18 @@ servers:
       urls: []
     capabilities:
       - category: source.untrusted.web_content
+        evidence: documented
+        evidence_reason: The README describes fetching web content for the model.
         description: Returns the content of arbitrary web pages.
         tools: [fetch]
       - category: sink.network.outbound
+        evidence: documented
+        evidence_reason: The fetch tool requests the URL it is given.
         description: Requests any URL the model chooses, which can carry data in the URL.
         tools: [fetch]
-    evidence: https://github.com/modelcontextprotocol/servers/blob/main/src/fetch/README.md
+    source_url: https://github.com/modelcontextprotocol/servers/blob/main/src/fetch/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
     notes: Private and loopback addresses are refused unless `--allow-private-ips` is passed.
 
   - id: postgres
@@ -116,9 +160,13 @@ servers:
       urls: []
     capabilities:
       - category: sink.data.read_sensitive
+        evidence: inferred
+        evidence_reason: The query tool is documented; that the database holds sensitive data is assumed.
         description: Runs read-only SQL queries against the configured database.
         tools: [query]
-    evidence: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/postgres/README.md
+    source_url: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/postgres/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
 
   - id: puppeteer
     description: Archived reference browser automation server based on Puppeteer.
@@ -128,15 +176,23 @@ servers:
       urls: []
     capabilities:
       - category: source.untrusted.web_content
+        evidence: documented
+        evidence_reason: The README lists these browser tools.
         description: Returns content from web pages the browser visits.
         tools: [puppeteer_navigate, puppeteer_screenshot, puppeteer_evaluate]
       - category: sink.network.outbound
+        evidence: documented
+        evidence_reason: The README lists navigation and form tools.
         description: Navigates to and submits forms on arbitrary sites.
         tools: [puppeteer_navigate, puppeteer_fill, puppeteer_click]
       - category: sink.data.read_sensitive
+        evidence: documented
+        evidence_reason: The README warns it can access local files and internal IP addresses.
         description: The README warns it can access local files and local or internal IP addresses.
         tools: [puppeteer_navigate]
-    evidence: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/puppeteer/README.md
+    source_url: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/puppeteer/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
 
   - id: playwright
     description: Microsoft's Playwright browser automation server.
@@ -146,12 +202,18 @@ servers:
       urls: []
     capabilities:
       - category: source.untrusted.web_content
+        evidence: documented
+        evidence_reason: The README lists these browser tools.
         description: Returns content from web pages the browser visits.
         tools: [browser_navigate, browser_evaluate]
       - category: sink.network.outbound
+        evidence: documented
+        evidence_reason: The README lists navigation and file upload tools.
         description: Navigates to arbitrary sites and uploads files to them.
         tools: [browser_navigate, browser_file_upload]
-    evidence: https://github.com/microsoft/playwright-mcp/blob/main/README.md
+    source_url: https://github.com/microsoft/playwright-mcp/blob/main/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.
 
   - id: slack
     description: Archived reference Slack server.
@@ -161,9 +223,15 @@ servers:
       urls: []
     capabilities:
       - category: source.untrusted.chat
+        evidence: documented
+        evidence_reason: The README lists these tools.
         description: Reads channel history and thread replies written by workspace members.
         tools: [slack_get_channel_history, slack_get_thread_replies]
       - category: sink.network.outbound
+        evidence: documented
+        evidence_reason: The README lists these tools.
         description: Posts messages and replies to channels.
         tools: [slack_post_message, slack_reply_to_thread]
-    evidence: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/slack/README.md
+    source_url: https://github.com/modelcontextprotocol/servers-archived/blob/main/src/slack/README.md
+    evidence: documented
+    evidence_reason: Match identifiers and tool names are copied from the cited README.

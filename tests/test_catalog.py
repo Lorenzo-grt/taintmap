@@ -31,11 +31,24 @@ def _entries(name: str) -> list[dict[str, Any]]:
 
 
 @pytest.mark.parametrize("name", sorted(MODELS))
-def test_every_entry_has_an_evidence_link(name: str) -> None:
+def test_every_entry_has_a_source_link_and_evidence(name: str) -> None:
     entries = _entries(name)
     assert entries
     for entry in entries:
-        assert str(entry.get("evidence", "")).startswith("https://"), entry.get("id")
+        assert str(entry.get("source_url", "")).startswith("https://"), entry.get("id")
+        assert entry.get("evidence") in ("documented", "inferred"), entry.get("id")
+        assert entry.get("evidence_reason"), entry.get("id")
+        for capability in entry.get("capabilities", []):
+            assert capability.get("evidence") in ("documented", "inferred"), entry.get("id")
+            assert capability.get("evidence_reason"), entry.get("id")
+
+
+def test_claude_code_action_reads_event_is_inferred() -> None:
+    action = catalog.ai_actions().find("anthropics/claude-code-action@v1")
+    assert action is not None
+    assert action.reads_event is True
+    assert action.reads_event_evidence is catalog.Evidence.INFERRED
+    assert action.reads_event_reason
 
 
 def _broken(name: str, mutate: Any) -> None:
@@ -45,9 +58,14 @@ def _broken(name: str, mutate: Any) -> None:
         MODELS[name].model_validate(raw)
 
 
-def test_missing_evidence_is_rejected() -> None:
-    _broken("ai_actions", lambda raw: raw["actions"][0].pop("evidence"))
-    _broken("mcp_servers", lambda raw: raw["servers"][0].update(evidence="http://insecure"))
+def test_missing_or_bad_evidence_is_rejected() -> None:
+    _broken("ai_actions", lambda raw: raw["actions"][0].pop("source_url"))
+    _broken("ai_actions", lambda raw: raw["actions"][0].pop("evidence_reason"))
+    _broken("ai_actions", lambda raw: raw["actions"][0].pop("reads_event_evidence"))
+    _broken("ai_actions", lambda raw: raw["actions"][0].update(evidence="guessed"))
+    _broken("mcp_servers", lambda raw: raw["servers"][0].update(source_url="http://insecure"))
+    _broken("mcp_servers", lambda raw: raw["servers"][0]["capabilities"][0].pop("evidence"))
+    _broken("gha_triggers", lambda raw: raw["triggers"][0].update(evidence_reason="two\nlines"))
 
 
 def test_unknown_category_is_rejected() -> None:

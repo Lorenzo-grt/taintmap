@@ -8,126 +8,171 @@
 # Context ids are expression paths in dot form. `*` matches one path segment (an array index or a
 # key). The parser normalises `github.event['issue']['title']` to `github.event.issue.title`.
 #
-# Schema: schemas/gha_triggers.schema.json. Every entry needs an `evidence` link.
+# Every entry needs a `source_url`, an `evidence` level (documented: the source says it; inferred:
+# taintmap's reading of the source) and a one-line `evidence_reason`.
+#
+# Schema: schemas/gha_triggers.schema.json.
 version: 1
 
 triggers:
   - id: issues
     description: Runs when an issue is opened, edited or otherwise changed. Anyone who can open an issue controls its title and body.
     source_category: source.untrusted.issue_text
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issues
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issues
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: issue_comment
     description: Runs when a comment on an issue or pull request is created, edited or deleted. Anyone who can comment controls the comment body.
     source_category: source.untrusted.issue_text
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issue_comment
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issue_comment
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: pull_request_target
     description: Runs in the context of the base repository, with its secrets and a write token, for pull requests including those from forks.
     source_category: source.untrusted.pr_content
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_target
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_target
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: discussion
     description: Runs when a discussion is created or changed. Anyone who can start a discussion controls its title and body.
     source_category: source.untrusted.discussion
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#discussion
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#discussion
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: discussion_comment
     description: Runs when a comment on a discussion is created, edited or deleted.
     source_category: source.untrusted.discussion
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#discussion_comment
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#discussion_comment
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: pull_request_review_comment
     description: Runs when a review comment on a pull request diff is created, edited or deleted.
     source_category: source.untrusted.discussion
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_review_comment
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_review_comment
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: workflow_run
     description: Runs after another workflow, with the base repository's secrets and a write token, even when the triggering run came from a fork.
     source_category: source.untrusted.pr_content
-    evidence: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run
+    source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run
+    evidence: documented
+    evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
 contexts:
   - id: github.event.issue.title
     description: Issue title.
     source_category: source.untrusted.issue_text
     triggers: [issues, issue_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.issue.body
     description: Issue body.
     source_category: source.untrusted.issue_text
     triggers: [issues, issue_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.comment.body
     description: Body of an issue, pull request, discussion or review comment.
     source_category: source.untrusted.issue_text
     triggers: [issue_comment, discussion_comment, pull_request_review_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.title
     description: Pull request title.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.body
     description: Pull request body.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.head.ref
     description: Branch name of the pull request head, chosen by its author.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.head.label
     description: Label of the pull request head (owner and branch name).
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.head.repo.default_branch
     description: Default branch name of the fork the pull request comes from.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.head_ref
     description: Head branch of the pull request that started the workflow.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target]
-    evidence: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    source_url: https://securitylab.github.com/resources/github-actions-untrusted-input/
+    evidence: documented
+    evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.discussion.title
     description: Discussion title.
     source_category: source.untrusted.discussion
     triggers: [discussion, discussion_comment]
-    evidence: https://docs.github.com/en/actions/concepts/security/script-injections
+    source_url: https://docs.github.com/en/actions/concepts/security/script-injections
+    evidence: documented
+    evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.discussion.body
     description: Discussion body.
     source_category: source.untrusted.discussion
     triggers: [discussion, discussion_comment]
-    evidence: https://docs.github.com/en/actions/concepts/security/script-injections
+    source_url: https://docs.github.com/en/actions/concepts/security/script-injections
+    evidence: documented
+    evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.workflow_run.head_commit.message
     description: Commit message of the head commit of the triggering run, which may come from a fork.
     source_category: source.untrusted.pr_content
     triggers: [workflow_run]
-    evidence: https://docs.github.com/en/actions/concepts/security/script-injections
+    source_url: https://docs.github.com/en/actions/concepts/security/script-injections
+    evidence: documented
+    evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.workflow_run.head_commit.author.name
     description: Author name of the head commit of the triggering run.
     source_category: source.untrusted.pr_content
     triggers: [workflow_run]
-    evidence: https://docs.github.com/en/actions/concepts/security/script-injections
+    source_url: https://docs.github.com/en/actions/concepts/security/script-injections
+    evidence: documented
+    evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.workflow_run.head_commit.author.email
     description: Author email of the head commit of the triggering run.
     source_category: source.untrusted.pr_content
     triggers: [workflow_run]
-    evidence: https://docs.github.com/en/actions/concepts/security/script-injections
+    source_url: https://docs.github.com/en/actions/concepts/security/script-injections
+    evidence: documented
+    evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
