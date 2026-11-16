@@ -144,6 +144,26 @@ class Finding(_Model):
         return self
 
 
+class ParseWarning(_Model):
+    """A file that could not be read or parsed. Reported to the user; never a crash.
+
+    Messages must never contain values from the file, only key names, so that secrets in a
+    malformed file are not echoed.
+    """
+
+    file: str = Field(min_length=1)
+    line: int = Field(ge=1)
+    message: str
+
+    @field_validator("file")
+    @classmethod
+    def _posix_separators(cls, value: str) -> str:
+        return value.replace("\\", "/")
+
+    def __str__(self) -> str:
+        return f"{self.file}:{self.line}: {self.message}"
+
+
 class GraphFragment(_Model):
     """The nodes and edges one parser produced from one file (or one group of files)."""
 

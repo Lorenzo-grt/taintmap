@@ -46,11 +46,11 @@ and JSON round-trip.
 **Acceptance:** tests with a temporary directory tree, including a symlink escaping the root.
 
 ### T3. Loaders with line numbers
-- [ ] `loaders/yaml_lines.py`: load YAML with ruamel round-trip; helper to get the line of any key or
+- [x] `loaders/yaml_lines.py`: load YAML with ruamel round-trip; helper to get the line of any key or
       sequence item.
-- [ ] `loaders/json_lines.py`: load JSON and map a JSON pointer (e.g. `/mcpServers/github/env/TOKEN`) to
+- [x] `loaders/json_lines.py`: load JSON and map a JSON pointer (e.g. `/mcpServers/github/env/TOKEN`) to
       its 1-based line.
-- [ ] Malformed files produce a parse warning (file, line, message), not a crash.
+- [x] Malformed files produce a parse warning (file, line, message), not a crash.
 
 **Acceptance:** tests for nested keys, lists, duplicate-looking keys, CRLF files, and malformed input.
 

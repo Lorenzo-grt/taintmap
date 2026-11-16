@@ -100,6 +100,11 @@ sequence item. JSON has no line information in the standard library, so `src/tai
 provides a small locator that maps a JSON pointer to its line by scanning tokens. Evidence without a line
 number is a bug.
 
+Malformed files never crash a scan: the loaders return a parse warning (file, line, message) instead.
+Warning messages name keys but never quote values, so a secret in a broken file is not echoed. YAML is
+read as YAML 1.2 (`on:` stays a string) and duplicate keys are an error. JSON must be strict (no comments
+or trailing commas); when a JSON object repeats a key, the last value is used and a warning is raised.
+
 ## Catalogs
 
 Knowledge about third-party components lives in data files, not code, so contributors can extend it with a
