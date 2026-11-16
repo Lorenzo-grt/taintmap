@@ -1,8 +1,25 @@
-"""Command-line interface."""
+"""Command-line interface.
 
+Exit codes of ``scan``: ``0`` no findings at or above ``--fail-on``; ``1`` findings at or above
+``--fail-on``; ``2`` a usage error, or a file that could not be parsed (when there are no failing
+findings). Info notes, such as an unknown MCP server, never change the exit code.
+"""
+
+from __future__ import annotations
+
+import io
+from collections.abc import Sequence
+from enum import StrEnum
 from importlib.metadata import version as _dist_version
+from pathlib import Path
+from typing import Annotated
 
 import typer
+from rich.console import Console
+
+from taintmap.model import Finding, ParseWarning, Severity
+from taintmap.report import json_report, terminal
+from taintmap.scan import scan as run_scan
 
 app = typer.Typer(
     name="taintmap",
@@ -10,6 +27,28 @@ app = typer.Typer(
     no_args_is_help=True,
     add_completion=False,
 )
+
+EXIT_OK = 0
+EXIT_FINDINGS = 1
+EXIT_ERROR = 2
+
+
+class OutputFormat(StrEnum):
+    TERMINAL = "terminal"
+    JSON = "json"
+
+
+class FailOn(StrEnum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+    NEVER = "never"
+
+
+class TokenPermissions(StrEnum):
+    WRITE = "write"
+    READ = "read"
 
 
 @app.callback()
@@ -21,3 +60,79 @@ def main() -> None:
 def version() -> None:
     """Print the installed taintmap version."""
     typer.echo(_dist_version("taintmap"))
+
+
+@app.command()
+def scan(
+    path: Annotated[Path, typer.Argument(help="Directory to scan.")] = Path("."),
+    output_format: Annotated[
+        OutputFormat, typer.Option("--format", help="Report format.")
+    ] = OutputFormat.TERMINAL,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write the report to this file.")
+    ] = None,
+    min_severity: Annotated[
+        Severity, typer.Option("--min-severity", help="Only report findings at or above this.")
+    ] = Severity.LOW,
+    fail_on: Annotated[
+        FailOn,
+        typer.Option("--fail-on", help="Exit with 1 when a finding is at or above this level."),
+    ] = FailOn.LOW,
+    default_token_permissions: Annotated[
+        TokenPermissions,
+        typer.Option(
+            "--default-token-permissions",
+            help="What GITHUB_TOKEN may do in workflows that declare no permissions. "
+            "Repositories created since 2023-02-02 default to read; older ones often to write.",
+        ),
+    ] = TokenPermissions.WRITE,
+    include: Annotated[
+        list[str] | None,
+        typer.Option("--include", help="Only scan files matching this glob (repeatable)."),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--exclude", help="Skip files and directories matching this glob (repeatable)."
+        ),
+    ] = None,
+) -> None:
+    """Scan a directory for paths from untrusted input to sensitive actions."""
+    try:
+        result = run_scan(
+            path,
+            include=include or (),
+            exclude=exclude or (),
+            default_token_permissions="read"
+            if default_token_permissions is TokenPermissions.READ
+            else "write",
+        )
+    except (NotADirectoryError, ValueError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(EXIT_ERROR) from None
+
+    if output_format is OutputFormat.JSON:
+        text = json_report.render(result, min_severity)
+        if output:
+            output.write_text(text, encoding="utf-8")
+        else:
+            typer.echo(text, nl=False)
+    elif output:
+        buffer = io.StringIO()
+        terminal.render(result, Console(file=buffer, width=120, color_system=None), min_severity)
+        output.write_text(buffer.getvalue(), encoding="utf-8")
+    else:
+        terminal.render(result, Console(highlight=False, soft_wrap=True), min_severity)
+
+    raise typer.Exit(exit_code(result.findings, result.parse_errors, fail_on))
+
+
+def exit_code(
+    findings: Sequence[Finding], parse_errors: Sequence[ParseWarning], fail_on: FailOn
+) -> int:
+    """``1`` for failing findings, else ``2`` for parse errors, else ``0``."""
+    if fail_on is not FailOn.NEVER:
+        threshold = Severity(fail_on.value)
+        if any(f.severity.rank >= threshold.rank for f in findings):
+            return EXIT_FINDINGS
+    return EXIT_ERROR if parse_errors else EXIT_OK

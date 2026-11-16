@@ -209,21 +209,38 @@ severities against the table in the threat model.
 
 ## Reporters
 
-- `terminal`: grouped by severity, one block per finding showing each hop with file:line (rich).
-- `json`: stable schema, versioned with a `schema_version` field.
+`src/taintmap/scan.py` runs the pipeline for the CLI; reporters live in `src/taintmap/report/`.
+
+- `terminal`: grouped by severity, one block per finding showing each hop with file:line (rich, plain
+  ASCII). Each block also shows the MCP servers the input came through (`via`), related nodes (`also`),
+  the missing control, the fix, an `[inferred]` tag with the reasons when the finding relies on an
+  inferred catalog claim, and a note when token permissions were assumed. Parse warnings and info notes
+  follow the findings, then a summary line.
+- `json`: stable schema, versioned with a `schema_version` field (currently `1`): `summary`, `findings`
+  (each with `path`, `via_servers` and `related` hops carrying `file`, `line`, `role` and `category`,
+  plus `inferred`, `inferred_reasons`, `permissions_assumed`, `missing_control`, `fix`, `fingerprint`),
+  `warnings` and `files`. `tests/snapshots/demo_scan.json` pins it; regenerate it with
+  `UPDATE_SNAPSHOTS=1 pytest tests/test_cli.py` when the schema changes on purpose.
 - `sarif` (v0.2): SARIF 2.1.0 for GitHub code scanning.
 
 ## CLI
 
 ```text
-taintmap scan [PATH] [--format terminal|json] [--output FILE] [--min-severity LEVEL] [--fail-on LEVEL]
-                [--default-token-permissions write|read]
+taintmap scan [PATH] [--format terminal|json] [--output FILE] [--min-severity LEVEL]
+              [--fail-on low|medium|high|critical|never] [--default-token-permissions write|read]
+              [--include GLOB]... [--exclude GLOB]...
 taintmap graph [PATH] --json          # dump the graph for debugging
 taintmap bench [--split dev|test]     # run the benchmark and report recall and false-positive rate
 taintmap version
 ```
 
 Exit codes: `0` no findings at or above `--fail-on`, `1` findings found, `2` usage or parse error.
+Findings take precedence: a scan with failing findings and a broken file exits `1`, and one with only a
+broken file exits `2`. Info notes (such as an unknown MCP server) never change the exit code.
+`--min-severity` only filters the report; `--fail-on` (default `low`) looks at every finding, and
+`never` makes the scan report-only. `--default-token-permissions` (default `write`) is what the
+`GITHUB_TOKEN` may do in workflows that declare no permissions; such findings are one severity level
+lower and ask for explicit permissions.
 
 ## Project layout
 

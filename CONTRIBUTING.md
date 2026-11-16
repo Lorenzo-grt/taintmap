@@ -43,7 +43,9 @@ mypy src
 pytest
 ```
 
-`ruff format .` fixes formatting. `ruff check --fix .` fixes many lint findings.
+`ruff format .` fixes formatting. To update the JSON report snapshot after an intended change, run
+`UPDATE_SNAPSHOTS=1 pytest tests/test_cli.py` (PowerShell: `$env:UPDATE_SNAPSHOTS=1; pytest tests/test_cli.py`).
+`ruff check --fix .` fixes many lint findings.
 
 ## Guidelines
 

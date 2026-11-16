@@ -121,13 +121,14 @@ and JSON round-trip.
 **Acceptance:** each rule has a vulnerable and a safe test fixture.
 
 ### T10. Reporters and `scan` command
-- [ ] `taintmap scan [PATH]` with `--format terminal|json`, `--output`, `--min-severity`, `--fail-on`.
-- [ ] Terminal report as in the README example: one block per finding, each hop with `file:line`.
-- [ ] JSON report with `schema_version: 1`.
-- [ ] Exit codes as in architecture.md.
-- [ ] `--default-token-permissions write|read` (default `write`), passed to the GitHub Actions parser.
-- [ ] Findings whose path depends on an `inferred` catalog claim (`attrs.evidence` on a node or edge)
+- [x] `taintmap scan [PATH]` with `--format terminal|json`, `--output`, `--min-severity`, `--fail-on`.
+- [x] Terminal report as in the README example: one block per finding, each hop with `file:line`.
+- [x] JSON report with `schema_version: 1`.
+- [x] Exit codes as in architecture.md.
+- [x] `--default-token-permissions write|read` (default `write`), passed to the GitHub Actions parser.
+- [x] Findings whose path depends on an `inferred` catalog claim (`attrs.evidence` on a node or edge)
       are shown as "inferred" in both reports.
+- [x] `--include` / `--exclude` globs (repeatable), passed to discovery.
 
 **Acceptance:** end-to-end test running the CLI on a fixture repository; snapshot test of JSON output.
 

@@ -571,7 +571,10 @@ class _Workflow:
         out = []
         for sink, scopes in sorted(by_sink.items()):
             line = min(writes[s] for s in scopes)
-            label = "GITHUB_TOKEN " + ", ".join(f"{s}: write" for s in scopes)
+            if owner is None:
+                label = f"GITHUB_TOKEN default {sink.value.removeprefix('sink.')} (assumed write)"
+            else:
+                label = "GITHUB_TOKEN " + ", ".join(f"{s}: write" for s in scopes)
             node_id = self.node(
                 f"{job_id}:permission:{sink.value}",
                 NodeKind.SINK,

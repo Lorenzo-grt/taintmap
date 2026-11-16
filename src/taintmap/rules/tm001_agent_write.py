@@ -21,6 +21,8 @@ def fix(graph: Graph, candidate: CandidatePath) -> str:
     sink = graph.node(candidate.sink)
     gate = trigger_gate_hint(graph, candidate)
     scopes = sink.attrs.get("scopes")
+    if sink.attrs.get("permissions_assumed"):
+        return f"{gate}, and grant the job only the write scopes the agent needs."
     if scopes:
         listed = ", ".join(f"`{s}: write`" for s in scopes)
         return (

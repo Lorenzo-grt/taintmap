@@ -12,7 +12,7 @@ from taintmap.paths import CandidatePath
 from taintmap.taxonomy import CarrierCategory, is_untrusted_source
 
 DECLARE_PERMISSIONS = (
-    "Declare `permissions:` explicitly: with none declared, taintmap assumes the token can write."
+    "Declare `permissions:` explicitly; with none declared, taintmap assumes the token can write."
 )
 
 

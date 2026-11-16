@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "taintmap_version": "<version>",
+  "summary": {
+    "findings": 4,
+    "by_severity": {
+      "critical": 0,
+      "high": 3,
+      "medium": 1,
+      "low": 0
+    },
+    "min_severity": "low",
+    "not_shown": 0,
+    "files_scanned": 4,
+    "parse_errors": 0
+  },
+  "findings": [
+    {
+      "rule_id": "TM001",
+      "severity": "high",
+      "title": "Untrusted input reaches an AI agent with write access",
+      "fingerprint": "9089dbf92f31cf73f02ec24451aa36c1",
+      "inferred": true,
+      "inferred_reasons": [
+        "The README says the action responds to @claude mentions and issue assignments, which implies it reads the triggering comment or issue; it does not say so explicitly."
+      ],
+      "permissions_assumed": false,
+      "missing_control": "control.trusted_actor_gate, control.least_privilege or control.human_approval",
+      "fix": "Gate the job with `if:` on `github.event.comment.author_association` (OWNER, MEMBER or COLLABORATOR), or remove `issues: write` from the job's `permissions:` if the agent does not need it.",
+      "path": [
+        {
+          "id": "gha:.github/workflows/respond.yml:on:issue_comment",
+          "role": "source",
+          "kind": "source",
+          "category": "source.untrusted.issue_text",
+          "label": "on: issue_comment",
+          "file": ".github/workflows/respond.yml",
+          "line": 2
+        },
+        {
+          "id": "gha:.github/workflows/respond.yml:job:respond:step:0",
+          "role": "agent",
+          "kind": "carrier",
+          "category": "carrier.llm_agent",
+          "label": "anthropics/claude-code-action@v1",
+          "file": ".github/workflows/respond.yml",
+          "line": 9
+        },
+        {
+          "id": "gha:.github/workflows/respond.yml:job:respond:permission:sink.repo.write",
+          "role": "sink",
+          "kind": "sink",
+          "category": "sink.repo.write",
+          "label": "GITHUB_TOKEN issues: write",
+          "file": ".github/workflows/respond.yml",
+          "line": 4
+        }
+      ],
+      "via_servers": [],
+      "related": []
+    },
+    {
+      "rule_id": "TM002",
+      "severity": "high",
+      "title": "Untrusted input reaches an AI agent that holds secrets",
+      "fingerprint": "400a4c8169ea4c7482015022f17d6735",
+      "inferred": false,
+      "inferred_reasons": [],
+      "permissions_assumed": false,
+      "missing_control": "control.trusted_actor_gate or control.human_approval",
+      "fix": "Gate the job with `if:` on `github.event.issue.author_association` (OWNER, MEMBER or COLLABORATOR), or stop passing `secrets.FAKE_ANTHROPIC_KEY` to a step that handles untrusted input.",
+      "path": [
+        {
+          "id": "gha:.github/workflows/triage.yml:on:issues",
+          "role": "source",
+          "kind": "source",
+          "category": "source.untrusted.issue_text",
+          "label": "on: issues",
+          "file": ".github/workflows/triage.yml",
+          "line": 3
+        },
+        {
+          "id": "gha:.github/workflows/triage.yml:job:triage:step:0",
+          "role": "agent",
+          "kind": "carrier",
+          "category": "carrier.llm_agent",
+          "label": "anthropics/claude-code-action@v1",
+          "file": ".github/workflows/triage.yml",
+          "line": 9
+        },
+        {
+          "id": "gha:.github/workflows/triage.yml:job:triage:step:0:with:anthropic_api_key:secret:FAKE_ANTHROPIC_KEY",
+          "role": "sink",
+          "kind": "sink",
+          "category": "sink.secret.read",
+          "label": "secrets.FAKE_ANTHROPIC_KEY",
+          "file": ".github/workflows/triage.yml",
+          "line": 12
+        }
+      ],
+      "via_servers": [],
+      "related": []
+    },
+    {
+      "rule_id": "TM005",
+      "severity": "high",
+      "title": "Untrusted input interpolated into a shell step",
+      "fingerprint": "c3d772268e9f474437d3ff071900144d",
+      "inferred": false,
+      "inferred_reasons": [],
+      "permissions_assumed": false,
+      "missing_control": "control.input_isolation",
+      "fix": "Pass `github.event.pull_request.title` to the step through `env:` and use the variable in the script (for example `\"$VALUE\"`) instead of `${{ }}` interpolation.",
+      "path": [
+        {
+          "id": "gha:.github/workflows/greet.yml:on:pull_request_target",
+          "role": "source",
+          "kind": "source",
+          "category": "source.untrusted.pr_content",
+          "label": "on: pull_request_target",
+          "file": ".github/workflows/greet.yml",
+          "line": 2
+        },
+        {
+          "id": "gha:.github/workflows/greet.yml:job:greet:step:0",
+          "role": "step",
+          "kind": "carrier",
+          "category": "carrier.workflow_step",
+          "label": "run",
+          "file": ".github/workflows/greet.yml",
+          "line": 9
+        },
+        {
+          "id": "gha:.github/workflows/greet.yml:job:greet:step:0:run",
+          "role": "sink",
+          "kind": "sink",
+          "category": "sink.code_exec",
+          "label": "run: shell script",
+          "file": ".github/workflows/greet.yml",
+          "line": 9
+        }
+      ],
+      "via_servers": [],
+      "related": []
+    },
+    {
+      "rule_id": "TM001",
+      "severity": "medium",
+      "title": "Untrusted input reaches an AI agent with write access",
+      "fingerprint": "17342db219ee984d179605ed068e3f3f",
+      "inferred": false,
+      "inferred_reasons": [],
+      "permissions_assumed": true,
+      "missing_control": "control.trusted_actor_gate, control.least_privilege or control.human_approval",
+      "fix": "Gate the job with `if:` on `github.event.issue.author_association` (OWNER, MEMBER or COLLABORATOR), and grant the job only the write scopes the agent needs. Declare `permissions:` explicitly; with none declared, taintmap assumes the token can write.",
+      "path": [
+        {
+          "id": "gha:.github/workflows/triage.yml:on:issues",
+          "role": "source",
+          "kind": "source",
+          "category": "source.untrusted.issue_text",
+          "label": "on: issues",
+          "file": ".github/workflows/triage.yml",
+          "line": 3
+        },
+        {
+          "id": "gha:.github/workflows/triage.yml:job:triage:step:0",
+          "role": "agent",
+          "kind": "carrier",
+          "category": "carrier.llm_agent",
+          "label": "anthropics/claude-code-action@v1",
+          "file": ".github/workflows/triage.yml",
+          "line": 9
+        },
+        {
+          "id": "gha:.github/workflows/triage.yml:job:triage:permission:sink.repo.write",
+          "role": "sink",
+          "kind": "sink",
+          "category": "sink.repo.write",
+          "label": "GITHUB_TOKEN default repo.write (assumed write)",
+          "file": ".github/workflows/triage.yml",
+          "line": 6
+        }
+      ],
+      "via_servers": [],
+      "related": []
+    }
+  ],
+  "warnings": [
+    {
+      "file": ".mcp.json",
+      "line": 7,
+      "message": "MCP server \"internal\" is not in the catalog; its capabilities are unknown",
+      "level": "info"
+    }
+  ],
+  "files": [
+    ".github/workflows/greet.yml",
+    ".github/workflows/respond.yml",
+    ".github/workflows/triage.yml",
+    ".mcp.json"
+  ]
+}
