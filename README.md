@@ -70,7 +70,15 @@ HIGH  untrusted-input → destructive-action
 | **v0.3** | GitHub Action and pre-commit hook; import findings from existing scanners |
 | **later** | More frameworks (Python, Node, n8n), runtime traces, fix suggestions as patches |
 
-The full design and long-term direction are in [VISION.md](VISION.md).
+## Documentation
+
+| Document | What it covers |
+|---|---|
+| [VISION.md](VISION.md) | Why taintmap exists and where it is going |
+| [docs/architecture.md](docs/architecture.md) | Pipeline, data model, parsers, catalogs, rules, CLI, project layout |
+| [docs/threat-model.md](docs/threat-model.md) | Sources, carriers, sinks, controls and the v0.1 rules |
+| [docs/benchmark.md](docs/benchmark.md) | How accuracy is measured: cases, matching, metrics, dev/test splits |
+| [docs/plan.md](docs/plan.md) | The task-by-task build plan with acceptance criteria |
 
 ## Contributing
 
