@@ -146,6 +146,8 @@ class AiAction(_Sourced):
     prompt_inputs: list[Name]
     tool_config_inputs: list[Name]
     credential_inputs: list[Name]
+    model_credential_inputs: list[Name] = Field(default_factory=list)
+    model_credential_source_url: Url | None = None
     sandbox_inputs: list[Name]
     actor_gate_inputs: list[Name]
     code_exec_tools: list[Name] = Field(default_factory=list)
@@ -165,6 +167,12 @@ class AiAction(_Sourced):
             raise ValueError(f"{self.id}: an AI action needs prompt_inputs or reads_event")
         if self.reads_event and (self.reads_event_evidence is None or not self.reads_event_reason):
             raise ValueError(f"{self.id}: reads_event needs reads_event_evidence and a reason")
+        if not set(self.model_credential_inputs) <= set(self.credential_inputs):
+            raise ValueError(f"{self.id}: model_credential_inputs must be credential_inputs")
+        if self.model_credential_inputs and self.model_credential_source_url is None:
+            raise ValueError(
+                f"{self.id}: model_credential_inputs needs model_credential_source_url"
+            )
         if self.code_exec_tools and (self.code_exec_evidence is None or not self.code_exec_reason):
             raise ValueError(f"{self.id}: code_exec_tools needs code_exec_evidence and a reason")
         if self.mcp_configs and (self.mcp_configs_evidence is None or not self.mcp_configs_reason):

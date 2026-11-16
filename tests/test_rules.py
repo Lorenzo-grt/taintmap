@@ -145,13 +145,56 @@ def test_assumed_permissions_lower_severity_and_ask_to_declare_them() -> None:
     assert "declare `permissions:` explicitly" in write.fix.lower()
     (secret,) = [f for f in findings if f.rule_id == "TM002"]
     assert not secret.permissions_assumed
-    assert secret.severity is Severity.HIGH
+    # The agent's own model key, with no command or network tools: informational.
+    assert secret.severity is Severity.INFO
 
 
 def scan_single_workflow(name: str) -> tuple[Graph, list[Finding]]:
     root = FIXTURES / "gha"
     graph, _ = build_graph([GithubActionsParser().parse(root / name, root)])
     return graph, run_rules(graph, candidate_paths(graph))
+
+
+BENCH_DEV = Path(__file__).resolve().parents[1] / "benchmark" / "cases"
+
+
+def test_tm002_model_credential_is_info_without_leak_channels() -> None:
+    _, findings = scan(BENCH_DEV / "tm002-dev-discussion-gemini-deploy-token")
+    by_sink = {str(f.evidence[-1]): f for f in findings if f.rule_id == "TM002"}
+    model_key = by_sink[".github/workflows/answer.yml:12"]
+    assert model_key.severity is Severity.INFO
+    assert "`gemini_api_key`" in model_key.fix
+    assert "no way to leak it" in model_key.fix
+    other = by_sink[".github/workflows/answer.yml:9"]
+    assert other.severity is Severity.HIGH  # any other secret stays high
+    assert "secrets.FAKE_DEPLOY_TOKEN" in other.fix
+
+
+def test_tm002_model_credential_is_high_when_the_agent_can_run_commands() -> None:
+    _, findings = scan(BENCH_DEV / "tm002-dev-pr-target-claude-bash-key")
+    (secret,) = [f for f in findings if f.rule_id == "TM002"]
+    assert secret.severity is Severity.HIGH
+    assert "can run commands" in secret.fix
+
+
+def test_tm002_model_credential_is_high_when_the_agent_can_send_data_out() -> None:
+    graph, findings = scan(FIXTURES / "repos" / "linked")
+    model_key = [
+        f
+        for f in findings
+        if f.rule_id == "TM002" and graph.node(f.path[-1]).attrs.get("model_credential")
+    ]
+    assert model_key and all(f.severity is Severity.HIGH for f in model_key)
+    assert all("send data out" in f.fix for f in model_key)
+
+
+def test_model_credential_inputs_are_catalogued_with_sources() -> None:
+    from taintmap import catalog
+
+    for action in catalog.ai_actions().actions:
+        assert action.model_credential_inputs, action.id
+        assert set(action.model_credential_inputs) <= set(action.credential_inputs)
+        assert str(action.model_credential_source_url).startswith("https://")
 
 
 def test_inferred_findings_are_marked() -> None:
@@ -205,3 +248,4 @@ def test_findings_are_sorted_most_severe_first() -> None:
 def test_severity_lowered() -> None:
     assert Severity.CRITICAL.lowered() is Severity.HIGH
     assert Severity.LOW.lowered() is Severity.LOW
+    assert Severity.INFO.lowered() is Severity.INFO

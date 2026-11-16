@@ -79,6 +79,10 @@ example, in organisation settings) can be declared in `taintmap.yaml` (v0.2).
 | `TM004` | Agent combines untrusted content, sensitive access and outbound network | one agent with all three, via any servers or tools | critical |
 | `TM005` | Untrusted input interpolated into a shell step | `source.untrusted.*` → `carrier.workflow_step` → `sink.code_exec` without `control.input_isolation` | high |
 
+For `TM002`, an AI action's own model credential (for example `anthropic_api_key` passed to
+`claude-code-action`) is reported as `high` only when the agent can also run commands or reach the
+network, the ways it could leak the key; otherwise the finding is `info`.
+
 `TM005` overlaps with dedicated workflow linters. taintmap keeps it because it is part of the path picture,
 and v0.3 will import findings from those tools instead of duplicating them.
 

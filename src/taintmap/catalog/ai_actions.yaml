@@ -7,6 +7,10 @@
 # - prompt_inputs: inputs whose value becomes part of the agent's prompt or context
 # - tool_config_inputs: inputs that set which tools the agent may use (allow-lists, settings)
 # - credential_inputs: inputs that hand the agent a credential
+# - model_credential_inputs: the credential inputs that are the agent's own model API key or token
+#   (a subset of credential_inputs), with `model_credential_source_url` citing where they are
+#   described. Holding only these is not a TM002 vulnerability unless the agent can also run
+#   commands or reach the network.
 # - sandbox_inputs: inputs that confine what the agent's process can do
 # - actor_gate_inputs: inputs that widen or narrow who may trigger the agent
 # - reads_event: true when the action reads the triggering issue, pull request or comment itself,
@@ -37,6 +41,8 @@ actions:
       - claude_code_oauth_token
       - github_token
       - ssh_signing_key
+    model_credential_inputs: [anthropic_api_key, claude_code_oauth_token]
+    model_credential_source_url: https://github.com/anthropics/claude-code-action/blob/main/action.yml
     sandbox_inputs: []
     actor_gate_inputs: [allowed_bots, allowed_non_write_users]
     code_exec_tools: [Bash]
@@ -69,6 +75,8 @@ actions:
     prompt_inputs: [prompt, prompt-file]
     tool_config_inputs: [codex-args, permission-profile]
     credential_inputs: [openai-api-key]
+    model_credential_inputs: [openai-api-key]
+    model_credential_source_url: https://github.com/openai/codex-action/blob/main/action.yml
     sandbox_inputs: [sandbox, permission-profile, safety-strategy]
     actor_gate_inputs: [allow-users, allow-bots, allow-bot-users]
     reads_event: false
@@ -87,6 +95,8 @@ actions:
     prompt_inputs: [prompt]
     tool_config_inputs: [settings, extensions]
     credential_inputs: [gemini_api_key, google_api_key]
+    model_credential_inputs: [gemini_api_key, google_api_key]
+    model_credential_source_url: https://github.com/google-github-actions/run-gemini-cli/blob/main/action.yml
     sandbox_inputs: []
     actor_gate_inputs: []
     reads_event: false

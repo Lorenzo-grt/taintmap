@@ -684,6 +684,19 @@ class _Workflow:
                 untrusted |= taint_paths(taint)
                 for secret in secret_names(value):
                     sink = self.secret(step_id, "with", str(key), secret, key_ln)
+                    if action and str(key) in action.model_credential_inputs:
+                        node = self.nodes[sink]
+                        self.nodes[sink] = node.model_copy(
+                            update={
+                                "attrs": {
+                                    **node.attrs,
+                                    "model_credential": True,
+                                    "model_credential_source_url": (
+                                        action.model_credential_source_url
+                                    ),
+                                }
+                            }
+                        )
                     self.edge(step_id, sink, EdgeKind.RUNS_WITH, key_ln)
 
         step_secrets: list[tuple[str, int]] = []

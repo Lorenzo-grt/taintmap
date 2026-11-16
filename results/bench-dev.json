@@ -4,11 +4,11 @@
   "cases": 20,
   "safe_cases": 10,
   "recall": 1.0,
-  "precision": 0.8571428571428571,
-  "safe_false_positive_rate": 0.1,
+  "precision": 1.0,
+  "safe_false_positive_rate": 0.0,
   "expected": 12,
   "matched": 12,
-  "produced": 14,
+  "produced": 12,
   "rules": [
     {
       "rule": "TM001",
@@ -23,10 +23,10 @@
       "rule": "TM002",
       "expected": 2,
       "matched": 2,
-      "produced": 4,
+      "produced": 2,
       "recall": 1.0,
-      "precision": 0.5,
-      "safe_false_positive_rate": 0.1
+      "precision": 1.0,
+      "safe_false_positive_rate": 0.0
     },
     {
       "rule": "TM003",
@@ -57,22 +57,5 @@
     }
   ],
   "missed": [],
-  "unexpected": [
-    {
-      "case": "tm002-dev-discussion-gemini-deploy-token",
-      "rule": "TM002",
-      "source": ".github/workflows/answer.yml:1",
-      "sink": ".github/workflows/answer.yml:12",
-      "severity": "high",
-      "inferred": false
-    },
-    {
-      "case": "tm002-dev-discussion-gemini-model-key-only",
-      "rule": "TM002",
-      "source": ".github/workflows/answer.yml:1",
-      "sink": ".github/workflows/answer.yml:10",
-      "severity": "high",
-      "inferred": false
-    }
-  ]
+  "unexpected": []
 }

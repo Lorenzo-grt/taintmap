@@ -36,8 +36,13 @@ class EdgeKind(StrEnum):
 
 
 class Severity(StrEnum):
-    """Finding severity, from least to most severe."""
+    """Finding severity, from least to most severe.
 
+    ``info`` marks a finding that is worth knowing but is not a vulnerability on its own; it never
+    fails a scan and the benchmark does not count it.
+    """
+
+    INFO = "info"
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
@@ -45,15 +50,22 @@ class Severity(StrEnum):
 
     @property
     def rank(self) -> int:
-        """Numeric order: ``low`` is 0, ``critical`` is 3."""
+        """Numeric order: ``info`` is 0, ``critical`` is 4."""
         return _SEVERITY_ORDER.index(self)
 
     def lowered(self) -> Severity:
-        """One level lower; ``low`` stays ``low``."""
-        return _SEVERITY_ORDER[max(self.rank - 1, 0)]
+        """One level lower, but never below ``low`` (``info`` stays ``info``)."""
+        floor = 0 if self is Severity.INFO else 1
+        return _SEVERITY_ORDER[max(self.rank - 1, floor)]
 
 
-_SEVERITY_ORDER = (Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL)
+_SEVERITY_ORDER = (
+    Severity.INFO,
+    Severity.LOW,
+    Severity.MEDIUM,
+    Severity.HIGH,
+    Severity.CRITICAL,
+)
 
 
 class _Model(BaseModel):

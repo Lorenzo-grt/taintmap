@@ -5,11 +5,12 @@
     "findings": 4,
     "by_severity": {
       "critical": 0,
-      "high": 3,
+      "high": 2,
       "medium": 1,
-      "low": 0
+      "low": 0,
+      "info": 1
     },
-    "min_severity": "low",
+    "min_severity": "info",
     "not_shown": 0,
     "files_scanned": 4,
     "parse_errors": 0
@@ -54,48 +55,6 @@
           "label": "GITHUB_TOKEN issues: write",
           "file": ".github/workflows/respond.yml",
           "line": 4
-        }
-      ],
-      "via_servers": [],
-      "related": []
-    },
-    {
-      "rule_id": "TM002",
-      "severity": "high",
-      "title": "Untrusted input reaches an AI agent that holds secrets",
-      "fingerprint": "400a4c8169ea4c7482015022f17d6735",
-      "inferred": false,
-      "inferred_reasons": [],
-      "permissions_assumed": false,
-      "missing_control": "control.trusted_actor_gate or control.human_approval",
-      "fix": "Gate the job with `if:` on `github.event.issue.author_association` (OWNER, MEMBER or COLLABORATOR), or stop passing `secrets.FAKE_ANTHROPIC_KEY` to a step that handles untrusted input.",
-      "path": [
-        {
-          "id": "gha:.github/workflows/triage.yml:on:issues",
-          "role": "source",
-          "kind": "source",
-          "category": "source.untrusted.issue_text",
-          "label": "on: issues",
-          "file": ".github/workflows/triage.yml",
-          "line": 3
-        },
-        {
-          "id": "gha:.github/workflows/triage.yml:job:triage:step:0",
-          "role": "agent",
-          "kind": "carrier",
-          "category": "carrier.llm_agent",
-          "label": "anthropics/claude-code-action@v1",
-          "file": ".github/workflows/triage.yml",
-          "line": 9
-        },
-        {
-          "id": "gha:.github/workflows/triage.yml:job:triage:step:0:with:anthropic_api_key:secret:FAKE_ANTHROPIC_KEY",
-          "role": "sink",
-          "kind": "sink",
-          "category": "sink.secret.read",
-          "label": "secrets.FAKE_ANTHROPIC_KEY",
-          "file": ".github/workflows/triage.yml",
-          "line": 12
         }
       ],
       "via_servers": [],
@@ -180,6 +139,48 @@
           "label": "GITHUB_TOKEN default repo.write (assumed write)",
           "file": ".github/workflows/triage.yml",
           "line": 6
+        }
+      ],
+      "via_servers": [],
+      "related": []
+    },
+    {
+      "rule_id": "TM002",
+      "severity": "info",
+      "title": "Untrusted input reaches an AI agent that holds secrets",
+      "fingerprint": "400a4c8169ea4c7482015022f17d6735",
+      "inferred": false,
+      "inferred_reasons": [],
+      "permissions_assumed": false,
+      "missing_control": "control.trusted_actor_gate or control.human_approval",
+      "fix": "The agent holds its own model credential `anthropic_api_key` but can neither run commands nor reach the network, so it has no way to leak it. Keep it that way; to be stricter, gate the job with `if:` on `github.event.issue.author_association` (OWNER, MEMBER or COLLABORATOR).",
+      "path": [
+        {
+          "id": "gha:.github/workflows/triage.yml:on:issues",
+          "role": "source",
+          "kind": "source",
+          "category": "source.untrusted.issue_text",
+          "label": "on: issues",
+          "file": ".github/workflows/triage.yml",
+          "line": 3
+        },
+        {
+          "id": "gha:.github/workflows/triage.yml:job:triage:step:0",
+          "role": "agent",
+          "kind": "carrier",
+          "category": "carrier.llm_agent",
+          "label": "anthropics/claude-code-action@v1",
+          "file": ".github/workflows/triage.yml",
+          "line": 9
+        },
+        {
+          "id": "gha:.github/workflows/triage.yml:job:triage:step:0:with:anthropic_api_key:secret:FAKE_ANTHROPIC_KEY",
+          "role": "sink",
+          "kind": "sink",
+          "category": "sink.secret.read",
+          "label": "secrets.FAKE_ANTHROPIC_KEY",
+          "file": ".github/workflows/triage.yml",
+          "line": 12
         }
       ],
       "via_servers": [],

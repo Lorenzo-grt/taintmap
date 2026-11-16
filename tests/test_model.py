@@ -51,7 +51,8 @@ def test_enums_have_documented_values() -> None:
         "writes_to",
         "guarded_by",
     }
-    assert [s.rank for s in Severity] == [0, 1, 2, 3]
+    assert [s.value for s in Severity] == ["info", "low", "medium", "high", "critical"]
+    assert [s.rank for s in Severity] == [0, 1, 2, 3, 4]
 
 
 def test_node_rejects_unknown_kind_and_extra_fields() -> None:

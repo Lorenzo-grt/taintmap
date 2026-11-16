@@ -113,6 +113,28 @@
           "default": null,
           "title": "Mcp Configs Reason"
         },
+        "model_credential_inputs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Model Credential Inputs",
+          "type": "array"
+        },
+        "model_credential_source_url": {
+          "anyOf": [
+            {
+              "pattern": "^https://[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Credential Source Url"
+        },
         "notes": {
           "anyOf": [
             {

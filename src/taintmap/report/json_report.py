@@ -49,7 +49,7 @@ def _finding(graph: Graph, finding: Finding) -> dict[str, Any]:
     }
 
 
-def report(result: ScanResult, min_severity: Severity = Severity.LOW) -> dict[str, Any]:
+def report(result: ScanResult, min_severity: Severity = Severity.INFO) -> dict[str, Any]:
     shown = at_least(result.findings, min_severity)
     return {
         "schema_version": SCHEMA_VERSION,
@@ -68,5 +68,5 @@ def report(result: ScanResult, min_severity: Severity = Severity.LOW) -> dict[st
     }
 
 
-def render(result: ScanResult, min_severity: Severity = Severity.LOW) -> str:
+def render(result: ScanResult, min_severity: Severity = Severity.INFO) -> str:
     return json.dumps(report(result, min_severity), indent=2, ensure_ascii=False) + "\n"

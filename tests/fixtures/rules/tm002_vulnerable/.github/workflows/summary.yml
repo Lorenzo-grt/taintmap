@@ -5,6 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: google-github-actions/run-gemini-cli@v0
+        env:
+          RELEASE_TOKEN: ${{ secrets.FAKE_RELEASE_TOKEN }}
         with:
           prompt: "Summarise: ${{ github.event.discussion.body }}"
           gemini_api_key: ${{ secrets.FAKE_GEMINI_KEY }}

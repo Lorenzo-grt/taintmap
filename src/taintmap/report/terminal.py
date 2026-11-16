@@ -17,11 +17,12 @@ STYLES = {
     Severity.HIGH: "bold red",
     Severity.MEDIUM: "bold yellow",
     Severity.LOW: "bold blue",
+    Severity.INFO: "dim",
 }
 LABEL_WIDTH = 8
 
 
-def render(result: ScanResult, console: Console, min_severity: Severity = Severity.LOW) -> None:
+def render(result: ScanResult, console: Console, min_severity: Severity = Severity.INFO) -> None:
     findings = at_least(result.findings, min_severity)
     current: Severity | None = None
     for finding in findings:

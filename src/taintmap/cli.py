@@ -73,7 +73,7 @@ def scan(
     ] = None,
     min_severity: Annotated[
         Severity, typer.Option("--min-severity", help="Only report findings at or above this.")
-    ] = Severity.LOW,
+    ] = Severity.INFO,
     fail_on: Annotated[
         FailOn,
         typer.Option("--fail-on", help="Exit with 1 when a finding is at or above this level."),

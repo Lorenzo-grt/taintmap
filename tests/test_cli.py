@@ -44,8 +44,9 @@ def test_no_arguments_shows_help() -> None:
 def test_terminal_report_end_to_end() -> None:
     code, output = scan(str(DEMO))
     assert code == EXIT_FINDINGS
-    assert "== HIGH (3)" in output
+    assert "== HIGH (2)" in output
     assert "== MEDIUM (1)" in output
+    assert "== INFO (1)" in output
     # Every hop is shown with file:line.
     assert "source  .github/workflows/greet.yml:2  on: pull_request_target" in output
     assert "sink    .github/workflows/greet.yml:9  run: shell script" in output
@@ -59,7 +60,7 @@ def test_terminal_report_end_to_end() -> None:
     assert "token permissions are assumed" in output
     # Info notes are listed but are not findings.
     assert 'info    .mcp.json:7  MCP server "internal" is not in the catalog' in output
-    assert output.strip().endswith("4 findings (3 high, 1 medium) in 4 files")
+    assert output.strip().endswith("4 findings (2 high, 1 medium, 1 info) in 4 files")
 
 
 def test_terminal_report_shows_the_mcp_server_content_came_through() -> None:
@@ -97,7 +98,13 @@ def test_json_report_matches_snapshot() -> None:
 def test_json_report_fields() -> None:
     _, report = scan_json(str(DEMO))
     assert report["summary"]["findings"] == 4
-    assert report["summary"]["by_severity"] == {"critical": 0, "high": 3, "medium": 1, "low": 0}
+    assert report["summary"]["by_severity"] == {
+        "critical": 0,
+        "high": 2,
+        "medium": 1,
+        "low": 0,
+        "info": 1,
+    }
     assert report["files"] == [
         ".github/workflows/greet.yml",
         ".github/workflows/respond.yml",
@@ -122,10 +129,14 @@ def test_min_severity_filters_the_report_but_not_the_exit_code() -> None:
     code, report = scan_json(str(DEMO), "--min-severity", "high")
     assert code == EXIT_FINDINGS
     assert {f["severity"] for f in report["findings"]} == {"high"}
-    assert report["summary"]["not_shown"] == 1
+    assert report["summary"]["not_shown"] == 2
     code, output = scan(str(DEMO), "--min-severity", "critical", "--fail-on", "medium")
     assert code == EXIT_FINDINGS
     assert "0 findings, 4 below critical not shown in 4 files" in output
+    _, all_findings = scan_json(str(DEMO), "--min-severity", "info")
+    assert all_findings["summary"]["findings"] == 4
+    _, low_up = scan_json(str(DEMO), "--min-severity", "low")
+    assert low_up["summary"]["not_shown"] == 1
 
 
 @pytest.mark.parametrize(

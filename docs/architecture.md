@@ -60,7 +60,8 @@ optional `snippet` (one line, trimmed).
 guards any node on that path and its category blocks the path's risk class (see threat model).
 
 ### Finding
-`rule_id`, `severity` (`low`, `medium`, `high`, `critical`), `title`, `path` (ordered node ids),
+`rule_id`, `severity` (`info`, `low`, `medium`, `high`, `critical`; `info` is worth knowing but not a
+vulnerability on its own, never fails a scan and is not counted by the benchmark), `title`, `path` (ordered node ids),
 `evidence` (one location per node on the path), `missing_control`, `fix` (one or two sentences),
 `inferred` (the path relies on an inferred catalog claim), `permissions_assumed` (the sink exists only
 because default token permissions were assumed), `via_servers` (MCP servers whose tool results carry the
@@ -196,6 +197,9 @@ findings. Rules never parse files; they only read the graph. A test checks ids, 
 severities against the table in the threat model.
 
 - TM001–TM003 report `untrusted source → … LLM agent … → sink` paths (write, secret, code execution).
+  For TM002, an AI action's own model credential (`model_credential_inputs` in the AI actions catalog,
+  such as `anthropic_api_key`) is `high` only when the same input, through the same agent, also reaches
+  `sink.code_exec` or `sink.network.outbound`; otherwise it is `info`. Other secrets stay `high`.
   An agent step can run commands when its tool config allows a tool listed in the AI action catalog's
   `code_exec_tools` (for `claude-code-action`, `Bash` in `--allowedTools`).
 - TM004 groups paths by agent and source: when the same source reaches, through the same agent, both a
@@ -238,7 +242,7 @@ taintmap version
 Exit codes: `0` no findings at or above `--fail-on`, `1` findings found, `2` usage or parse error.
 Findings take precedence: a scan with failing findings and a broken file exits `1`, and one with only a
 broken file exits `2`. Info notes (such as an unknown MCP server) never change the exit code.
-`--min-severity` only filters the report; `--fail-on` (default `low`) looks at every finding, and
+`--min-severity` (default `info`) only filters the report; `--fail-on` (default `low`) looks at every finding, and
 `never` makes the scan report-only. `--default-token-permissions` (default `write`) is what the
 `GITHUB_TOKEN` may do in workflows that declare no permissions; such findings are one severity level
 lower and ask for explicit permissions.
