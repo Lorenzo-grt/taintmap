@@ -215,12 +215,13 @@ severities against the table in the threat model.
 
 `src/taintmap/scan.py` runs the pipeline for the CLI; reporters live in `src/taintmap/report/`.
 
-- `terminal`: grouped by severity, one block per finding showing each hop with file:line (rich, plain
-  ASCII). Each block also shows the MCP servers the input came through (`via`), related nodes (`also`),
+- `terminal`: findings grouped by untrusted source and AI agent (the last agent on the path), most
+  severe group first, one block per finding showing each hop with file:line (rich, plain ASCII). Findings
+  without an agent, such as TM005, are grouped by source alone. Each block also shows the MCP servers the input came through (`via`), related nodes (`also`),
   the missing control, the fix, an `[inferred]` tag with the reasons when the finding relies on an
   inferred catalog claim, and a note when token permissions were assumed. Parse warnings and info notes
   follow the findings, then a summary line.
-- `json`: stable schema, versioned with a `schema_version` field (currently `1`): `summary`, `findings`
+- `json`: one flat list of findings per rule (not grouped); stable schema, versioned with a `schema_version` field (currently `1`): `summary`, `findings`
   (each with `path`, `via_servers` and `related` hops carrying `file`, `line`, `role` and `category`,
   plus `inferred`, `inferred_reasons`, `permissions_assumed`, `missing_control`, `fix`, `fingerprint`),
   `warnings` and `files`. `tests/snapshots/demo_scan.json` pins it; regenerate it with

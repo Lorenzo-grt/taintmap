@@ -44,9 +44,21 @@ def test_no_arguments_shows_help() -> None:
 def test_terminal_report_end_to_end() -> None:
     code, output = scan(str(DEMO))
     assert code == EXIT_FINDINGS
-    assert "== HIGH (2)" in output
-    assert "== MEDIUM (1)" in output
-    assert "== INFO (1)" in output
+    # Findings are grouped by source and agent, most severe group first.
+    headings = [line for line in output.splitlines() if line.startswith("== ")]
+    assert headings == [
+        "== on: pull_request_target (.github/workflows/greet.yml:2) -> no AI agent"
+        "  [1 finding, highest HIGH]",
+        "== on: issue_comment (.github/workflows/respond.yml:2) -> agent "
+        "anthropics/claude-code-action@v1 (.github/workflows/respond.yml:9)"
+        "  [1 finding, highest HIGH]",
+        "== on: issues (.github/workflows/triage.yml:3) -> agent "
+        "anthropics/claude-code-action@v1 (.github/workflows/triage.yml:9)"
+        "  [2 findings, highest MEDIUM]",
+        "== NOTES",
+    ]
+    triage = output.split("(.github/workflows/triage.yml:9)  [2 findings")[1]
+    assert triage.index("MEDIUM   TM001") < triage.index("INFO     TM002")
     # Every hop is shown with file:line.
     assert "source  .github/workflows/greet.yml:2  on: pull_request_target" in output
     assert "sink    .github/workflows/greet.yml:9  run: shell script" in output
@@ -61,6 +73,26 @@ def test_terminal_report_end_to_end() -> None:
     # Info notes are listed but are not findings.
     assert 'info    .mcp.json:7  MCP server "internal" is not in the catalog' in output
     assert output.strip().endswith("4 findings (2 high, 1 medium, 1 info) in 4 files")
+
+
+def test_terminal_groups_several_rules_under_one_source_and_agent() -> None:
+    from taintmap.report.terminal import groups
+    from taintmap.scan import scan as run_scan
+
+    result = run_scan(REPOS / "linked")
+    grouped = groups(result, result.findings)
+    keys = [key for key, _ in grouped]
+    assert len(keys) == len(set(keys))
+    assert sum(len(members) for _, members in grouped) == len(result.findings)
+    web = "mcp:.mcp.json:server:fetch:cap:source.untrusted.web_content"
+    step = "gha:.github/workflows/agent.yml:job:agent:step:1"
+    members = dict(grouped)[(web, step)]
+    assert {f.rule_id for f in members} == {"TM001", "TM002", "TM004"}
+    ranks = [f.severity.rank for f in members]
+    assert ranks == sorted(ranks, reverse=True)
+    # JSON stays one flat list per rule.
+    _, report = scan_json(str(REPOS / "linked"))
+    assert len(report["findings"]) == len(result.findings)
 
 
 def test_terminal_report_shows_the_mcp_server_content_came_through() -> None:
