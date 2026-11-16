@@ -26,6 +26,9 @@ class CandidatePath:
       inferred.
     * ``permissions_assumed``: the sink exists only because default token permissions were
       assumed. Rules lower the severity of such findings by one level.
+    * ``via_servers``: MCP servers whose tool results carry the input along the path (from
+      ``attrs.via_server`` on its edges), so reports can say which server the content came
+      through even though the edge goes straight to the client.
     """
 
     nodes: tuple[str, ...]
@@ -33,6 +36,7 @@ class CandidatePath:
     blocked_by: tuple[str, ...]
     inferred: bool
     permissions_assumed: bool
+    via_servers: tuple[str, ...] = ()
 
     @property
     def source(self) -> str:
@@ -54,11 +58,14 @@ def candidate_paths(
     max_paths_per_pair: int = DEFAULT_MAX_PATHS_PER_PAIR,
     include_blocked: bool = False,
 ) -> list[CandidatePath]:
-    """Every path from a source node to a sink node, at most ``max_paths_per_pair`` per pair.
+    """Every unblocked path from a source node to a sink node, at most ``max_paths_per_pair``
+    per pair.
 
-    Paths blocked by an effective control are dropped unless ``include_blocked`` is set. The cap
-    keeps the shortest paths of each pair (ties broken by node ids) and is applied before
-    blocked paths are dropped, so the result does not depend on which controls exist.
+    The cap applies after blocked paths are removed, so an unblocked longer path is never hidden
+    behind blocked shorter ones. Paths are examined shortest first and the cap keeps the shortest
+    unblocked ones (ties broken by node ids). With ``include_blocked``, blocked paths found along
+    the way are returned too, capped the same way. At most :data:`MAX_EXAMINED_PER_PAIR` paths
+    are examined per pair.
     """
     if max_paths_per_pair < 1:
         raise ValueError(f"max_paths_per_pair must be at least 1, got {max_paths_per_pair}")
@@ -67,11 +74,37 @@ def candidate_paths(
     out: list[CandidatePath] = []
     for source in sources:
         for sink in sinks:
-            for nodes in graph.paths(source.id, sink.id, max_depth, limit=max_paths_per_pair):
-                candidate = describe(graph, nodes)
-                if include_blocked or not candidate.blocked:
-                    out.append(candidate)
+            open_, blocked = _pair(graph, source.id, sink.id, max_depth, max_paths_per_pair)
+            out.extend(open_)
+            if include_blocked:
+                out.extend(blocked)
     return out
+
+
+MAX_EXAMINED_PER_PAIR = 2000
+
+
+def _pair(
+    graph: Graph, source: str, sink: str, max_depth: int, cap: int
+) -> tuple[list[CandidatePath], list[CandidatePath]]:
+    open_: list[CandidatePath] = []
+    blocked: list[CandidatePath] = []
+    current_length = -1
+    for examined, nodes in enumerate(graph.iter_paths_shortest_first(source, sink, max_depth)):
+        # Finish the current length before stopping, so ties are chosen by node ids.
+        if examined >= MAX_EXAMINED_PER_PAIR:
+            break
+        if len(nodes) != current_length:
+            if len(open_) >= cap:
+                break
+            current_length = len(nodes)
+        candidate = describe(graph, nodes)
+        (blocked if candidate.blocked else open_).append(candidate)
+
+    def key(c: CandidatePath) -> tuple[int, tuple[str, ...]]:
+        return (len(c.nodes), c.nodes)
+
+    return sorted(open_, key=key)[:cap], sorted(blocked, key=key)[:cap]
 
 
 def describe(graph: Graph, nodes: list[str]) -> CandidatePath:
@@ -83,7 +116,19 @@ def describe(graph: Graph, nodes: list[str]) -> CandidatePath:
         blocked_by=decision.blocking,
         inferred=depends_on_inferred(graph, nodes),
         permissions_assumed=graph.node(nodes[-1]).attrs.get("permissions_assumed") is True,
+        via_servers=via_servers(graph, nodes),
     )
+
+
+def via_servers(graph: Graph, nodes: list[str]) -> tuple[str, ...]:
+    """MCP servers named by ``attrs.via_server`` on the path's edges, in path order."""
+    found: list[str] = []
+    for src, dst in pairwise(nodes):
+        for edge in graph.edges_between(src, dst):
+            server = edge.attrs.get("via_server")
+            if isinstance(server, str) and server not in found:
+                found.append(server)
+    return tuple(found)
 
 
 def depends_on_inferred(graph: Graph, nodes: list[str]) -> bool:

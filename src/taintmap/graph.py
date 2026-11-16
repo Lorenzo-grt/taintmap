@@ -160,6 +160,29 @@ class Graph:
             self._flow = flow
         return self._flow
 
+    def iter_paths_shortest_first(
+        self, source_id: str, sink_id: str, max_depth: int = 8
+    ) -> Iterator[list[str]]:
+        """Yield simple paths from source to sink in order of length, up to ``max_depth`` edges.
+
+        Paths of equal length come in no particular order; callers sort them. ``guarded_by``
+        edges are not followed.
+        """
+        if max_depth < 1:
+            raise ValueError(f"max_depth must be at least 1, got {max_depth}")
+        for node_id in (source_id, sink_id):
+            if node_id not in self._g:
+                raise UnknownNodeError(node_id)
+        if source_id == sink_id:
+            return
+        try:
+            for path in nx.shortest_simple_paths(self._flow_graph(), source_id, sink_id):
+                if len(path) - 1 > max_depth:
+                    return
+                yield list(path)
+        except nx.NetworkXNoPath:
+            return
+
     def paths(
         self, source_id: str, sink_id: str, max_depth: int = 8, limit: int | None = None
     ) -> list[list[str]]:

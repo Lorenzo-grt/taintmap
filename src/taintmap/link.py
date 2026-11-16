@@ -102,7 +102,7 @@ def _tool_results(
         if node.kind != NodeKind.SOURCE:
             continue
         for edge in graph.edges_between(node.id, client.id):
-            if edge.kind == EdgeKind.PASSES_INPUT and edge.attrs.get("server") == server.id:
+            if edge.kind == EdgeKind.PASSES_INPUT and edge.attrs.get("via_server") == server.id:
                 out.append(
                     Edge(
                         src=node.id,

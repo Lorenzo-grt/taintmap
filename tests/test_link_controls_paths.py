@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 from pathlib import Path
 
 import pytest
@@ -337,3 +338,61 @@ def test_describe_and_depends_on_inferred_on_plain_graph() -> None:
     candidate = describe(graph, ["src", "a0", "b", "sink"])
     assert candidate.guarded_by == () and not candidate.inferred
     assert not depends_on_inferred(graph, ["src", "a0", "b", "sink"])
+
+
+def test_cap_applies_after_blocked_paths_are_removed() -> None:
+    """Six short paths are blocked by human approval; one longer path is open."""
+    loc = Location(file="x.yml", line=1)
+
+    def n(node_id: str, kind: NodeKind, category: str) -> Node:
+        return Node(id=node_id, kind=kind, category=category, label="", location=loc)
+
+    def e(src: str, dst: str, kind: EdgeKind = EdgeKind.PASSES_INPUT) -> Edge:
+        return Edge(src=src, dst=dst, kind=kind, location=loc)
+
+    nodes = [
+        n("src", NodeKind.SOURCE, "source.untrusted.issue_text"),
+        n("sink", NodeKind.SINK, "sink.repo.write"),
+        n("approval", NodeKind.CONTROL, "control.human_approval"),
+    ]
+    edges = []
+    for i in range(6):
+        nodes.append(n(f"short{i}", NodeKind.CARRIER, "carrier.llm_agent"))
+        edges += [
+            e("src", f"short{i}"),
+            e(f"short{i}", "sink", EdgeKind.WRITES_TO),
+            e(f"short{i}", "approval", EdgeKind.GUARDED_BY),
+        ]
+    long_path = ["src", "x1", "x2", "x3", "sink"]
+    for node_id in long_path[1:-1]:
+        nodes.append(n(node_id, NodeKind.CARRIER, "carrier.workflow_step"))
+    edges += [e(a, b) for a, b in itertools.pairwise(long_path)]
+    graph = Graph()
+    graph.add_fragment(GraphFragment(nodes=nodes, edges=edges))
+
+    found = candidate_paths(graph, max_paths_per_pair=5)
+    assert [c.nodes for c in found] == [tuple(long_path)]
+    everything = candidate_paths(graph, max_paths_per_pair=5, include_blocked=True)
+    assert len([c for c in everything if c.blocked]) == 5
+    assert [c.nodes for c in everything if not c.blocked] == [tuple(long_path)]
+
+
+def test_paths_name_the_mcp_server_the_content_came_through() -> None:
+    graph = scan(FIXTURES / "mcp" / "claude_code")
+    by_pair = {(c.source, c.sink): c for c in candidate_paths(graph)}
+    issue = "mcp:.mcp.json:server:github:cap:source.untrusted.issue_text"
+    web = "mcp:.mcp.json:server:fetch:cap:source.untrusted.web_content"
+    write = "mcp:.mcp.json:server:github:cap:sink.repo.write"
+    assert by_pair[(issue, write)].via_servers == ("mcp:.mcp.json:server:github",)
+    assert by_pair[(web, write)].via_servers == ("mcp:.mcp.json:server:fetch",)
+    # A linked workflow step keeps the server too.
+    linked = scan(LINKED)
+    (path,) = [
+        c
+        for c in candidate_paths(linked)
+        if c.source == MCP + "server:fetch:cap:source.untrusted.web_content"
+        and c.sink == WF + "job:agent:permission:sink.repo.write"
+    ]
+    assert path.via_servers == (MCP + "server:fetch",)
+    graph, _ = workflow("shell_injection.yml")
+    assert candidate_paths(graph)[0].via_servers == ()

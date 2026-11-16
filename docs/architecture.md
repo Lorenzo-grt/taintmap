@@ -77,10 +77,11 @@ must block the path (see the module docstring and the threat model). A trusted-a
 `author_association` blocks only input whose entry edges name an author it checks, so it never blocks MCP
 tool results; `control.input_isolation` blocks only a non-interpolated `run:` script.
 
-`paths.py` lists candidate paths from every source to every sink (`max_depth` 8 and at most 5 paths per
-pair by default, the shortest first), drops blocked ones unless asked, and marks each path as `inferred`
-(it relies on an inferred catalog claim) and `permissions_assumed` (its sink exists only because default
-token permissions were assumed). Rules read these candidates.
+`paths.py` lists candidate paths from every source to every sink (`max_depth` 8 by default). It examines
+paths shortest first, drops blocked ones, and then keeps at most 5 per pair, so an unblocked longer path is
+never hidden behind blocked shorter ones. Each path is marked `inferred` (it relies on an inferred catalog
+claim) and `permissions_assumed` (its sink exists only because default token permissions were assumed),
+and lists `via_servers`, the MCP servers whose tool results carry the input. Rules read these candidates.
 
 ### Graph
 `src/taintmap/graph.py` wraps a `networkx.MultiDiGraph`. It offers `add_fragment`, `nodes_of_kind`,
@@ -142,7 +143,7 @@ Each file's client (`.mcp.json` Claude Code, `.cursor/mcp.json` Cursor, `.vscode
 | Config element | Graph |
 |---|---|
 | Server entry | `carrier.mcp_server`, matched to the MCP catalog by package, image or URL |
-| Catalogued `source.untrusted.*` capability | `source` node that passes input straight to the client (tool results; `attrs.server` names the server), so a path can read through a server and act through the same one |
+| Catalogued `source.untrusted.*` capability | `source` node that passes input straight to the client (tool results; `attrs.via_server` names the server, and candidate paths list it in `via_servers`), so a path can read through a server and act through the same one |
 | Catalogued `sink.*` capability | `sink` node reached from the server |
 | Unknown server | `attrs.unknown = true` and an info-level note (`ParseWarning.level = "info"`), never a finding |
 | Literal secret-looking value in `env` or `headers` (not `${...}`, `$VAR` or `<placeholder>`) | `sink.secret.read` with `attrs.hardcoded = true`; only the key name is recorded |

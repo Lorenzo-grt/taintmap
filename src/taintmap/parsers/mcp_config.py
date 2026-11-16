@@ -16,7 +16,7 @@ Servers are read from ``mcpServers`` and from ``servers`` (the key VS Code uses)
 * Each server -> ``carrier.mcp_server`` [``M:server:<name>``]. A server the MCP catalog knows
   gets one node per capability [``M:server:<name>:cap:<category>``]. ``source.untrusted.*``
   capabilities pass input straight to the client (tool results; the edge names the server in
-  ``attrs.server``), so that a path can read through a server and then act through the same
+  ``attrs.via_server``), so that a path can read through a server and then act through the same
   server. ``sink.*`` capabilities are reached from the server. Capability nodes carry the catalog's
   evidence level.
 * An unknown server has ``attrs.unknown = true`` and produces an info-level note, not a finding.
@@ -269,7 +269,7 @@ class _Config:
                     client_id,
                     EdgeKind.PASSES_INPUT,
                     line,
-                    server=server_id,
+                    via_server=server_id,
                     tool_results=True,
                     evidence=capability.evidence.value,
                 )

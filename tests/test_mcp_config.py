@@ -145,7 +145,7 @@ def test_catalogued_capabilities_become_sources_and_sinks() -> None:
         if e.src == p.id("server:github:cap:source.untrusted.issue_text")
     ]
     assert edge.dst == p.id("client")
-    assert edge.attrs["server"] == p.id("server:github")
+    assert edge.attrs["via_server"] == p.id("server:github")
 
 
 def test_read_and_write_through_the_same_server() -> None:
