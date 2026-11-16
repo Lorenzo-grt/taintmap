@@ -9,6 +9,10 @@ Discovery is deliberately conservative about what it walks into:
 * Symbolic links are followed only when their target resolves inside the root, because a link's
   own name and place can matter to a parser (``.mcp.json`` linked to ``config/mcp.json``). Links
   that point outside the root, broken links and links back to an enclosing directory are skipped.
+* A file reached through more than one directory (for example through a symlinked directory) is
+  returned once, under its shortest relative path (ties broken alphabetically). Files are compared
+  by the real path of their directory plus their own name, so a file symlink with its own name is
+  still a separate file.
 
 Include and exclude globs are matched against the file's path relative to the root, with POSIX
 separators. ``*`` and ``?`` do not cross ``/``; ``**`` matches any number of directories. A pattern
@@ -129,9 +133,9 @@ def discover(
     includes = _compile(include)
     excludes = _compile(exclude)
 
-    found: list[tuple[str, Path]] = []
+    found: dict[tuple[str, str], str] = {}  # (real directory, name) -> shortest relative path
 
-    def walk(directory: Path, rel_prefix: str, ancestors: frozenset[str]) -> None:
+    def walk(directory: Path, rel_prefix: str, ancestors: frozenset[str], real_dir: Path) -> None:
         try:
             entries = sorted(os.scandir(directory), key=lambda e: e.name)
         except OSError:
@@ -161,7 +165,7 @@ def discover(
                 key = os.path.normcase(real)
                 if key in ancestors:
                     continue  # a link back to a directory we are already inside
-                walk(entry_path, rel + "/", ancestors | {key})
+                walk(entry_path, rel + "/", ancestors | {key}, real)
             elif is_file:
                 if _is_hidden_and_not_allowed(entry.name):
                     continue
@@ -169,11 +173,13 @@ def discover(
                     continue
                 if includes and not any(g.matches(rel) for g in includes):
                     continue
-                found.append((rel, root_real / rel))
+                file_key = (os.path.normcase(real_dir), os.path.normcase(entry.name))
+                known = found.get(file_key)
+                if known is None or (len(rel), rel) < (len(known), known):
+                    found[file_key] = rel
 
-    walk(root_real, "", frozenset({os.path.normcase(root_real)}))
-    found.sort(key=lambda item: item[0])
-    return [path for _, path in found]
+    walk(root_real, "", frozenset({os.path.normcase(root_real)}), root_real)
+    return [root_real / rel for rel in sorted(found.values())]
 
 
 def relative_posix(path: Path, root: Path) -> str:

@@ -152,7 +152,24 @@ def test_directory_link_inside_root_is_followed_and_loops_terminate(tmp_path: Pa
     write(root, "conf/workflows/ci.yml")
     link_dir(root / "alias", root / "conf")
     link_dir(root / "conf" / "loop", root / "conf")
-    assert rels(root, discover(root)) == ["alias/workflows/ci.yml", "conf/workflows/ci.yml"]
+    assert rels(root, discover(root)) == ["conf/workflows/ci.yml"]
+
+
+def test_files_reached_through_linked_directories_are_deduplicated(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    write(root, "configuration/mcp/servers.json")
+    write(root, "configuration/other.json")
+    link_dir(root / "c", root / "configuration")
+    link_dir(root / "configuration" / "m", root / "configuration" / "mcp")
+    # Each real file is listed once, under its shortest relative path.
+    assert rels(root, discover(root)) == ["c/m/servers.json", "c/other.json"]
+
+
+def test_dedup_ties_break_alphabetically(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    write(root, "bbb/x.yml")
+    link_dir(root / "aaa", root / "bbb")
+    assert rels(root, discover(root)) == ["aaa/x.yml"]
 
 
 def test_file_link_escaping_root_is_not_followed(tmp_path: Path) -> None:
