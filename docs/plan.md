@@ -38,10 +38,10 @@ Design references: [architecture.md](architecture.md), [threat-model.md](threat-
 and JSON round-trip.
 
 ### T2. Discovery
-- [ ] `discover.py`: walk a root, skip `.git`, `node_modules`, virtualenvs, `dist`, `build` and hidden
+- [x] `discover.py`: walk a root, skip `.git`, `node_modules`, virtualenvs, `dist`, `build` and hidden
       directories except `.github`, `.cursor`, `.vscode`, `.mcp.json`.
-- [ ] Include/exclude globs from CLI options.
-- [ ] Never follow symlinks that point outside the root.
+- [x] Include/exclude globs from CLI options.
+- [x] Never follow symlinks that point outside the root.
 
 **Acceptance:** tests with a temporary directory tree, including a symlink escaping the root.
 
