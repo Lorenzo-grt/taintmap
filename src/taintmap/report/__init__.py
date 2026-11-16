@@ -38,6 +38,8 @@ def inferred_reasons(graph: Graph, finding: Finding) -> list[str]:
         if isinstance(reason, str) and reason and reason not in reasons:
             reasons.append(reason)
 
+    for reason in finding.inferred_reasons:
+        add(reason)
     for node_id in [*finding.path, *finding.related]:
         node = graph.node(node_id)
         if node.attrs.get("evidence") == "inferred":

@@ -201,6 +201,8 @@ severities against the table in the threat model.
   For TM002, an AI action's own model credential (`model_credential_inputs` in the AI actions catalog,
   such as `anthropic_api_key`) is `high` only when the same input, through the same agent, also reaches
   `sink.code_exec` or `sink.network.outbound`; otherwise it is `info`. Other secrets stay `high`.
+  A model-credential finding raised to `high` is marked inferred (`Finding.inferred_reasons`), since that
+  untrusted input can make the agent leak its own key is taintmap's judgement.
   An agent step can run commands when its tool config allows a tool listed in the AI action catalog's
   `code_exec_tools` (for `claude-code-action`, `Bash` in `--allowedTools`).
 - TM004 groups paths by agent and source: when the same source reaches, through the same agent, both a

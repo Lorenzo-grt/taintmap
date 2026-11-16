@@ -149,7 +149,9 @@ class Finding(_Model):
 
     ``fingerprint`` is computed from ``rule_id`` and ``path`` when not given.
 
-    * ``inferred``: the path relies on an inferred catalog claim; reports say so.
+    * ``inferred``: the finding relies on an inferred catalog claim or on a judgement of the rule;
+      reports say so. ``inferred_reasons`` holds reasons that come from the rule rather than the
+      graph (reporters add the reasons of inferred nodes and edges on the path).
     * ``permissions_assumed``: the sink exists only because default token permissions were
       assumed; the severity is already one level lower than the rule's default.
     * ``via_servers``: MCP servers whose tool results carry the input along the path.
@@ -165,6 +167,7 @@ class Finding(_Model):
     missing_control: str
     fix: str
     inferred: bool = False
+    inferred_reasons: list[str] = Field(default_factory=list)
     permissions_assumed: bool = False
     via_servers: list[str] = Field(default_factory=list)
     related: list[str] = Field(default_factory=list)

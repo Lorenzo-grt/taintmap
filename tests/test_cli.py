@@ -98,6 +98,18 @@ def test_terminal_groups_several_rules_under_one_source_and_agent() -> None:
     assert len(report["findings"]) == len(result.findings)
 
 
+def test_raised_model_credential_is_shown_as_inferred() -> None:
+    case = Path(__file__).resolve().parents[1] / "benchmark" / "cases"
+    code, output = scan(str(case / "tm002-dev-pr-target-claude-bash-key"))
+    assert code == EXIT_FINDINGS
+    line = next(row for row in output.splitlines() if "TM002" in row)
+    assert line.startswith("HIGH") and line.endswith("[inferred]")
+    assert "taintmap's judgement" in output
+    _, report = scan_json(str(case / "tm002-dev-pr-target-claude-bash-key"))
+    (tm002,) = [f for f in report["findings"] if f["rule_id"] == "TM002"]
+    assert tm002["inferred"] and "taintmap's judgement" in tm002["inferred_reasons"][0]
+
+
 def test_terminal_report_shows_the_mcp_server_content_came_through() -> None:
     code, output = scan(str(REPOS / "linked"))
     assert code == EXIT_FINDINGS

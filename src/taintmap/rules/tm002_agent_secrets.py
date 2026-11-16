@@ -5,6 +5,9 @@ An AI action's own model credential (``model_credential_inputs`` in the AI actio
 commands nor reach the network has no way to leak it. Such a finding is ``high`` only when the same
 untrusted input, through the same agent, also reaches ``sink.code_exec`` or
 ``sink.network.outbound``; otherwise it is ``info``. Every other secret stays ``high``.
+
+A model-credential finding raised to ``high`` is marked inferred: that untrusted input can make the
+agent use its tools to leak its own key is taintmap's judgement, not something a source states.
 """
 
 from __future__ import annotations
@@ -31,6 +34,11 @@ INFO = RuleInfo(
     missing_control="control.trusted_actor_gate or control.human_approval",
 )
 
+RAISED_REASON = (
+    "Rated high because the agent can also {channels}; that untrusted input can make it leak its "
+    "own model credential this way is taintmap's judgement."
+)
+
 LEAK_CHANNELS = {"sink.code_exec": "run commands", "sink.network.outbound": "send data out"}
 
 
@@ -46,14 +54,27 @@ def find(graph: Graph, candidates: list[CandidatePath]) -> list[Finding]:
             or not from_untrusted(graph, candidate)
         ):
             continue
+        reasons: list[str] = []
         if sink.attrs.get("model_credential"):
             can = channels.get((candidate.source, agents[-1].id), [])
             severity = Severity.HIGH if can else Severity.INFO
             text = _model_credential_fix(graph, candidate, can)
+            if can:
+                reasons.append(RAISED_REASON.format(channels=" and ".join(can)))
         else:
             severity = INFO.default_severity
             text = fix(graph, candidate)
-        findings.append(make_finding(INFO, graph, candidate, text, severity=severity))
+        findings.append(
+            make_finding(
+                INFO,
+                graph,
+                candidate,
+                text,
+                severity=severity,
+                inferred=candidate.inferred or bool(reasons),
+                inferred_reasons=reasons,
+            )
+        )
     return findings
 
 

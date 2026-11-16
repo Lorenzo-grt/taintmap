@@ -165,8 +165,10 @@ def test_tm002_model_credential_is_info_without_leak_channels() -> None:
     assert model_key.severity is Severity.INFO
     assert "`gemini_api_key`" in model_key.fix
     assert "no way to leak it" in model_key.fix
+    assert not model_key.inferred and model_key.inferred_reasons == []
     other = by_sink[".github/workflows/answer.yml:9"]
     assert other.severity is Severity.HIGH  # any other secret stays high
+    assert not other.inferred
     assert "secrets.FAKE_DEPLOY_TOKEN" in other.fix
 
 
@@ -175,6 +177,12 @@ def test_tm002_model_credential_is_high_when_the_agent_can_run_commands() -> Non
     (secret,) = [f for f in findings if f.rule_id == "TM002"]
     assert secret.severity is Severity.HIGH
     assert "can run commands" in secret.fix
+    # Raising a model credential to high is taintmap's judgement, so the finding is inferred.
+    assert secret.inferred
+    assert secret.inferred_reasons == [
+        "Rated high because the agent can also run commands; that untrusted input can make it "
+        "leak its own model credential this way is taintmap's judgement."
+    ]
 
 
 def test_tm002_model_credential_is_high_when_the_agent_can_send_data_out() -> None:

@@ -78,6 +78,7 @@ def make_finding(
     severity: Severity | None = None,
     related: list[str] | None = None,
     inferred: bool | None = None,
+    inferred_reasons: list[str] | None = None,
 ) -> Finding:
     related = related or []
     return Finding(
@@ -89,6 +90,7 @@ def make_finding(
         missing_control=info.missing_control,
         fix=with_permissions_note(fix, candidate),
         inferred=candidate.inferred if inferred is None else inferred,
+        inferred_reasons=inferred_reasons or [],
         permissions_assumed=candidate.permissions_assumed,
         via_servers=list(candidate.via_servers),
         related=related,
