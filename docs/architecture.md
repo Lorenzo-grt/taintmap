@@ -74,6 +74,7 @@ A parser implements:
 ```python
 class Parser(Protocol):
     name: str
+
     def matches(self, path: Path) -> bool: ...
     def parse(self, path: Path, root: Path) -> GraphFragment: ...
 ```

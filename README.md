@@ -89,7 +89,7 @@ is a small, self-contained contribution. Good ways to help right now:
 - **Source and sink definitions** for frameworks and tools you know.
 - **Design feedback:** open an issue or a discussion on the graph model and the roadmap.
 
-A full contributing guide will arrive with v0.1.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup and checks.
 
 ## License
 

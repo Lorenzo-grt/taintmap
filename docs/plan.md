@@ -17,13 +17,13 @@ Design references: [architecture.md](architecture.md), [threat-model.md](threat-
 ## Milestone v0.1: the map for workflows and MCP configs
 
 ### T0. Project skeleton
-- [ ] `pyproject.toml` (hatchling, Python ≥ 3.11, package `taintmap` in `src/`), console script `taintmap`.
-- [ ] Dependencies: typer, rich, pydantic>=2, networkx, ruamel.yaml. Dev extra: pytest, ruff, mypy.
-- [ ] `taintmap version` prints the version from package metadata.
-- [ ] `.gitignore` for Python, venvs, caches, `dist/`.
-- [ ] GitHub Actions CI: ruff, mypy, pytest on Python 3.11 and 3.12, ubuntu and windows. Pin actions to
+- [x] `pyproject.toml` (hatchling, Python ≥ 3.11, package `taintmap` in `src/`), console script `taintmap`.
+- [x] Dependencies: typer, rich, pydantic>=2, networkx, ruamel.yaml. Dev extra: pytest, ruff, mypy.
+- [x] `taintmap version` prints the version from package metadata.
+- [x] `.gitignore` for Python, venvs, caches, `dist/`.
+- [x] GitHub Actions CI: ruff, mypy, pytest on Python 3.11 and 3.12, ubuntu and windows. Pin actions to
       full commit SHAs and set `permissions: contents: read`.
-- [ ] `CONTRIBUTING.md` with setup commands for Windows PowerShell and bash.
+- [x] `CONTRIBUTING.md` with setup commands for Windows PowerShell and bash.
 
 **Acceptance:** fresh clone → `pip install -e ".[dev]"` → `taintmap version` works; CI is green.
 
