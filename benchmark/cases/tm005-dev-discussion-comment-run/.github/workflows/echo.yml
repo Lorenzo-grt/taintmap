@@ -1,0 +1,7 @@
+on: discussion_comment
+permissions: read-all
+jobs:
+  echo:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.comment.body }}"

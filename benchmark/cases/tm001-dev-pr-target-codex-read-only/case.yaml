@@ -1,0 +1,4 @@
+id: tm001-dev-pr-target-codex-read-only
+description: "Codex reads a pull request body but the token can only read."
+kind: safe
+expected: []

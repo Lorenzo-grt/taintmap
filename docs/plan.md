@@ -133,10 +133,10 @@ and JSON round-trip.
 **Acceptance:** end-to-end test running the CLI on a fixture repository; snapshot test of JSON output.
 
 ### T11. Benchmark harness and first cases
-- [ ] `taintmap bench` implementing benchmark.md (matching, metrics, per-rule table, misses list).
-- [ ] At least 20 cases: for each rule, at least 2 vulnerable and 2 safe. `splits.yaml` with about 70% dev
+- [x] `taintmap bench` implementing benchmark.md (matching, metrics, per-rule table, misses list).
+- [x] At least 20 cases: for each rule, at least 2 vulnerable and 2 safe. `splits.yaml` with about 70% dev
       and 30% test, stratified by rule.
-- [ ] `--final` is required to run the test split.
+- [x] `--final` is required to run the test split.
 
 **Acceptance:** `taintmap bench --split dev` runs in CI and its output is saved under `results/`.
 

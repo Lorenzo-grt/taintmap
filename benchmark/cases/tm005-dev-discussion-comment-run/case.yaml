@@ -1,0 +1,7 @@
+id: tm005-dev-discussion-comment-run
+description: "A discussion comment is interpolated into a shell script."
+kind: vulnerable
+expected:
+  - rule: TM005
+    source: .github/workflows/echo.yml:1
+    sink: .github/workflows/echo.yml:7

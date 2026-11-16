@@ -1,0 +1,12 @@
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+permissions: read-all
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report
+        run: |
+          echo "${{ github.event.workflow_run.head_commit.message }}"

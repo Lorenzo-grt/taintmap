@@ -1,0 +1,4 @@
+id: tm003-dev-comment-claude-bash-owner-gate
+description: "Claude with Bash only runs for comments from the repository owner."
+kind: safe
+expected: []

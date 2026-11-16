@@ -1,0 +1,4 @@
+id: tm005-dev-issue-label-gate
+description: "An issue title reaches a script only after a maintainer adds a label."
+kind: safe
+expected: []

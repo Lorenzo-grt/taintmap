@@ -1,0 +1,12 @@
+on: pull_request_target
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: "Review: ${{ github.event.pull_request.title }}"
+          claude_args: --allowedTools "Bash(npm test)"
+          anthropic_api_key: ${{ secrets.FAKE_ANTHROPIC_KEY }}

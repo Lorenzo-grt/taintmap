@@ -47,6 +47,16 @@ pytest
 `UPDATE_SNAPSHOTS=1 pytest tests/test_cli.py` (PowerShell: `$env:UPDATE_SNAPSHOTS=1; pytest tests/test_cli.py`).
 `ruff check --fix .` fixes many lint findings.
 
+After changing rules, parsers, catalogs or dev benchmark cases, refresh the saved dev results (CI checks
+them):
+
+```bash
+taintmap bench --split dev --output results/bench-dev.txt
+taintmap bench --split dev --format json --output results/bench-dev.json
+```
+
+Never run `--split test --final` while tuning; it is for releases.
+
 ## Guidelines
 
 - One task or topic per pull request, with tests for new behaviour.

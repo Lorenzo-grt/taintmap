@@ -34,3 +34,8 @@ jobs:
         run: mypy src
       - name: Pytest
         run: pytest
+      - name: Benchmark (dev split)
+        run: |
+          taintmap bench --split dev --output results/bench-dev.txt
+          taintmap bench --split dev --format json --output results/bench-dev.json
+          git diff --exit-code -- results/

@@ -230,7 +230,8 @@ taintmap scan [PATH] [--format terminal|json] [--output FILE] [--min-severity LE
               [--fail-on low|medium|high|critical|never] [--default-token-permissions write|read]
               [--include GLOB]... [--exclude GLOB]...
 taintmap graph [PATH] --json          # dump the graph for debugging
-taintmap bench [--split dev|test]     # run the benchmark and report recall and false-positive rate
+taintmap bench [--split dev|test] [--final] [--format terminal|json] [--output FILE]
+                                      # run the benchmark (docs/benchmark.md); test needs --final
 taintmap version
 ```
 
@@ -257,6 +258,8 @@ src/taintmap/
   link.py             merging fragments and cross-file linking
   controls.py         control evaluation
   paths.py            candidate paths from sources to sinks
+  scan.py             the pipeline for `taintmap scan`
+  bench.py            benchmark harness
   rules/              tm001_*.py ...
   report/             terminal.py, json_report.py
 benchmark/

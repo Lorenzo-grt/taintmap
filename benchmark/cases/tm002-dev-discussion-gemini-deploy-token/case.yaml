@@ -1,0 +1,7 @@
+id: tm002-dev-discussion-gemini-deploy-token
+description: "Gemini answers discussions and its step also holds a deploy token."
+kind: vulnerable
+expected:
+  - rule: TM002
+    source: .github/workflows/answer.yml:1
+    sink: .github/workflows/answer.yml:9

@@ -1,0 +1,7 @@
+id: tm001-dev-mcp-fetch-git
+description: "A client has a web fetch server and a git server that can commit."
+kind: vulnerable
+expected:
+  - rule: TM001
+    source: .mcp.json:3
+    sink: .mcp.json:7

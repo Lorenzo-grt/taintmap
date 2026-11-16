@@ -1,0 +1,4 @@
+id: tm003-dev-comment-claude-read-only
+description: "Claude responds to comments with read-only tools."
+kind: safe
+expected: []

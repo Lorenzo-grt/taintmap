@@ -1,0 +1,4 @@
+id: tm005-dev-discussion-comment-env
+description: "The discussion comment is passed through an environment variable."
+kind: safe
+expected: []

@@ -1,0 +1,12 @@
+on: discussion
+permissions: read-all
+jobs:
+  answer:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: google-github-actions/run-gemini-cli@v0
+        env:
+          DEPLOY_TOKEN: ${{ secrets.FAKE_DEPLOY_TOKEN }}
+        with:
+          prompt: "Answer: ${{ github.event.discussion.body }}"

@@ -1,0 +1,12 @@
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: write
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: openai/codex-action@v1
+        with:
+          prompt: "Fix this bug: ${{ github.event.issue.body }}"

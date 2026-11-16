@@ -1,0 +1,7 @@
+id: tm003-dev-comment-claude-bash
+description: "Claude responds to any comment with Bash allowed."
+kind: vulnerable
+expected:
+  - rule: TM003
+    source: .github/workflows/agent.yml:1
+    sink: .github/workflows/agent.yml:8

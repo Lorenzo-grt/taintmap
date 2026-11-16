@@ -1,5 +1,25 @@
 # Held-out cases. Never change a test case to improve a number (see docs/benchmark.md).
-dev: []
+dev:
+  - tm001-dev-issue-codex-member-gate
+  - tm001-dev-issue-codex-write
+  - tm001-dev-mcp-fetch-git
+  - tm001-dev-pr-target-codex-read-only
+  - tm002-dev-discussion-gemini-deploy-token
+  - tm002-dev-discussion-gemini-environment
+  - tm002-dev-discussion-gemini-model-key-only
+  - tm002-dev-pr-target-claude-bash-key
+  - tm003-dev-comment-claude-bash
+  - tm003-dev-comment-claude-bash-owner-gate
+  - tm003-dev-comment-claude-read-only
+  - tm003-dev-issue-claude-settings-bash
+  - tm004-dev-mcp-fetch-filesystem
+  - tm004-dev-mcp-fetch-only
+  - tm004-dev-mcp-files-git
+  - tm004-dev-mcp-puppeteer
+  - tm005-dev-discussion-comment-env
+  - tm005-dev-discussion-comment-run
+  - tm005-dev-issue-label-gate
+  - tm005-dev-workflow-run-commit-message
 test:
   - tm001-comment-issue-author-gate
   - tm001-comment-commenter-gate

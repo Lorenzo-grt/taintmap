@@ -1,0 +1,4 @@
+id: tm002-dev-discussion-gemini-model-key-only
+description: "Gemini answers discussions holding only its own model key, with no tools to leak it."
+kind: safe
+expected: []

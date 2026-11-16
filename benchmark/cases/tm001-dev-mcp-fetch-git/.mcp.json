@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "web": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    },
+    "repo": {
+      "command": "uvx",
+      "args": ["mcp-server-git"]
+    }
+  }
+}

@@ -1,0 +1,13 @@
+on:
+  issues:
+    types: [opened]
+permissions:
+  contents: read
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: "Triage: ${{ github.event.issue.title }}"
+          settings: '{"permissions": {"allow": ["Bash(git log:*)"]}}'

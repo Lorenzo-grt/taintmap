@@ -1,0 +1,7 @@
+id: tm003-dev-issue-claude-settings-bash
+description: "Claude triages new issues with Bash allowed through settings."
+kind: vulnerable
+expected:
+  - rule: TM003
+    source: .github/workflows/triage.yml:2
+    sink: .github/workflows/triage.yml:10

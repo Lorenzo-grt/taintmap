@@ -1,0 +1,4 @@
+id: tm004-dev-mcp-fetch-only
+description: "A web fetch server alone: untrusted content and outbound access, nothing sensitive."
+kind: safe
+expected: []

@@ -34,10 +34,24 @@ fix, for example the same workflow with a trusted-actor gate. They measure false
 - **Defensive:** a case describes a configuration pattern. It never contains an exploit payload.
 - **Paired:** every vulnerable case should have at least one safe twin.
 
+## Running it
+
+```bash
+taintmap bench --split dev                       # metrics, per-rule table, misses and unexpected findings
+taintmap bench --split dev --format json         # the same as JSON
+taintmap bench --split test --final              # held-out cases, for releases only
+```
+
+`--split test` is refused without `--final`. CI runs the dev split and checks that `results/bench-dev.txt`
+and `results/bench-dev.json` are up to date. A malformed case (missing `case.yaml`, a safe case with
+expected findings, a vulnerable case without any) stops the run with an error; unknown fields in
+`case.yaml` are ignored.
+
 ## Matching
 
 A produced finding matches an expected one when the rule id is equal and both the source and sink
-locations are equal (same file, same line). Each expected finding can be matched once.
+locations are equal (same file, same line). Each expected finding can be matched once. Only findings at `low` severity or above count as produced
+findings; `info` findings are notes, not claims that the case is vulnerable.
 
 ## Metrics
 

@@ -1,0 +1,7 @@
+id: tm004-dev-mcp-puppeteer
+description: "A browser server reads web pages, can reach local files and can send data out."
+kind: vulnerable
+expected:
+  - rule: TM004
+    source: .mcp.json:3
+    sink: .mcp.json:3

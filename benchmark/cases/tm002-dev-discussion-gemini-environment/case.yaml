@@ -1,0 +1,4 @@
+id: tm002-dev-discussion-gemini-environment
+description: "The deploy-token workflow behind a protected environment."
+kind: safe
+expected: []

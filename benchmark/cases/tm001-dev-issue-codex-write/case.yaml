@@ -1,0 +1,7 @@
+id: tm001-dev-issue-codex-write
+description: "An issue-triggered workflow runs Codex on the issue body with contents write."
+kind: vulnerable
+expected:
+  - rule: TM001
+    source: .github/workflows/fix.yml:2
+    sink: .github/workflows/fix.yml:5

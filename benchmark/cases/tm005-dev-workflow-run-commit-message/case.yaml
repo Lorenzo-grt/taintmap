@@ -1,0 +1,7 @@
+id: tm005-dev-workflow-run-commit-message
+description: "The head commit message of a triggering run is interpolated into a script."
+kind: vulnerable
+expected:
+  - rule: TM005
+    source: .github/workflows/report.yml:2
+    sink: .github/workflows/report.yml:11

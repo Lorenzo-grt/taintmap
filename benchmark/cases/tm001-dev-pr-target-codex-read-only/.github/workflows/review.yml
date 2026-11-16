@@ -1,0 +1,10 @@
+on: pull_request_target
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: openai/codex-action@v1
+        with:
+          prompt: "Review: ${{ github.event.pull_request.body }}"

@@ -1,0 +1,10 @@
+id: tm004-dev-mcp-fetch-filesystem
+description: "A client fetches web pages and can read and write a data directory."
+kind: vulnerable
+expected:
+  - rule: TM004
+    source: .mcp.json:3
+    sink: .mcp.json:3
+  - rule: TM001
+    source: .mcp.json:3
+    sink: .mcp.json:7

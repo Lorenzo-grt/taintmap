@@ -1,0 +1,11 @@
+on: issue_comment
+permissions:
+  contents: read
+jobs:
+  agent:
+    if: github.event.comment.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_args: --allowedTools "Bash,Edit"

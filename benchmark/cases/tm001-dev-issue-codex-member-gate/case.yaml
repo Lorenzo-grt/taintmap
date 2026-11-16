@@ -1,0 +1,4 @@
+id: tm001-dev-issue-codex-member-gate
+description: "The Codex issue workflow with a gate on the issue author's association."
+kind: safe
+expected: []

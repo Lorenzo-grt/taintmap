@@ -136,3 +136,59 @@ def exit_code(
         if any(f.severity.rank >= threshold.rank for f in findings):
             return EXIT_FINDINGS
     return EXIT_ERROR if parse_errors else EXIT_OK
+
+
+class BenchSplit(StrEnum):
+    DEV = "dev"
+    TEST = "test"
+
+
+@app.command()
+def bench(
+    split: Annotated[BenchSplit, typer.Option("--split", help="Which cases to run.")] = (
+        BenchSplit.DEV
+    ),
+    final: Annotated[
+        bool,
+        typer.Option("--final", help="Required to run the held-out test split (for releases)."),
+    ] = False,
+    benchmark: Annotated[Path, typer.Option("--benchmark", help="Benchmark directory.")] = Path(
+        "benchmark"
+    ),
+    output_format: Annotated[
+        OutputFormat, typer.Option("--format", help="terminal (text) or json.")
+    ] = OutputFormat.TERMINAL,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="Write the result to this file.")
+    ] = None,
+) -> None:
+    """Run the benchmark and report recall, precision and false-positive rate."""
+    from taintmap import bench as harness
+    from taintmap.rules import all_rules
+
+    if split is BenchSplit.TEST and not final:
+        typer.echo(
+            "error: the test split is held out; run it only for a release, with --final",
+            err=True,
+        )
+        raise typer.Exit(EXIT_ERROR)
+    try:
+        result = harness.run(
+            benchmark,
+            "test" if split is BenchSplit.TEST else "dev",
+            [r.info.id for r in all_rules()],
+        )
+    except harness.BenchError as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(EXIT_ERROR) from None
+    if output_format is OutputFormat.JSON:
+        import json
+
+        text = json.dumps(harness.to_json(result), indent=2) + "\n"
+    else:
+        text = harness.render_text(result)
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(text, encoding="utf-8", newline="\n")
+    else:
+        typer.echo(text, nl=False)

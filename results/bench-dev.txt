@@ -1,0 +1,19 @@
+taintmap benchmark: split dev, 20 cases (10 vulnerable, 10 safe)
+
+recall     1.00  (12/12 expected findings matched)
+precision  0.86  (12/14 produced findings matched)
+safe FPR   0.10  (1/10 safe cases with a finding)
+
+rule    expected  matched  produced  recall  precision  safe FPR
+TM001          3        3         3    1.00       1.00      0.00
+TM002          2        2         4    1.00       0.50      0.10
+TM003          3        3         3    1.00       1.00      0.00
+TM004          2        2         2    1.00       1.00      0.00
+TM005          2        2         2    1.00       1.00      0.00
+
+missed (0)
+  none
+
+unexpected (2)
+  tm002-dev-discussion-gemini-deploy-token  TM002  .github/workflows/answer.yml:1 -> .github/workflows/answer.yml:12  high
+  tm002-dev-discussion-gemini-model-key-only  TM002  .github/workflows/answer.yml:1 -> .github/workflows/answer.yml:10  high

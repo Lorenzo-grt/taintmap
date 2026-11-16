@@ -1,0 +1,4 @@
+id: tm004-dev-mcp-files-git
+description: "File and git servers with no untrusted content source."
+kind: safe
+expected: []
