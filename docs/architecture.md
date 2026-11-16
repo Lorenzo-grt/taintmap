@@ -218,7 +218,8 @@ severities against the table in the threat model.
 - `terminal`: findings grouped by untrusted source and AI agent (the last agent on the path), most
   severe group first, one block per finding showing each hop with file:line (rich, plain ASCII). Findings
   without an agent, such as TM005, are grouped by source alone. Each block also shows the MCP servers the input came through (`via`), related nodes (`also`),
-  the missing control, the fix, an `[inferred]` tag with the reasons when the finding relies on an
+  the missing control in plain language (`taxonomy.CONTROL_PLAIN_NAMES`; the JSON report keeps the
+  ids), the fix, an `[inferred]` tag with the reasons when the finding relies on an
   inferred catalog claim, and a note when token permissions were assumed. Parse warnings and info notes
   follow the findings, then a summary line.
 - `json`: one flat list of findings per rule (not grouped); stable schema, versioned with a `schema_version` field (currently `1`): `summary`, `findings`

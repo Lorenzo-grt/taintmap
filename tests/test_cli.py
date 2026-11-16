@@ -73,6 +73,9 @@ def test_terminal_report_end_to_end() -> None:
     # Info notes are listed but are not findings.
     assert 'info    .mcp.json:7  MCP server "internal" is not in the catalog' in output
     assert output.strip().endswith("4 findings (2 high, 1 medium, 1 info) in 4 files")
+    # Missing controls in plain language; the JSON report keeps the ids.
+    assert "missing   passing the input through an environment variable" in output
+    assert "control." not in output
 
 
 def test_terminal_groups_several_rules_under_one_source_and_agent() -> None:
@@ -150,6 +153,9 @@ def test_json_report_fields() -> None:
     for finding in report["findings"]:
         assert all({"file", "line", "role", "category"} <= set(hop) for hop in finding["path"])
     assert report["warnings"][0]["level"] == "info"
+    assert {f["missing_control"] for f in report["findings"] if f["rule_id"] == "TM005"} == {
+        "control.input_isolation"
+    }
     _, linked = scan_json(str(REPOS / "linked"))
     assert any(f["via_servers"] for f in linked["findings"])
 

@@ -98,6 +98,22 @@ def test_every_category_mentioned_in_doc_exists() -> None:
             assert taxonomy.is_category(token), f"{token} is in threat-model.md but not in code"
 
 
+def test_every_control_has_a_plain_name() -> None:
+    assert set(taxonomy.CONTROL_PLAIN_NAMES) == set(ControlCategory)
+    assert all("control." not in n for n in taxonomy.CONTROL_PLAIN_NAMES.values())
+
+
+def test_plain_controls() -> None:
+    assert taxonomy.plain_controls("control.input_isolation") == (
+        "passing the input through an environment variable"
+    )
+    assert taxonomy.plain_controls("control.trusted_actor_gate or control.human_approval") == (
+        "a check that only trusted people can trigger it or human approval before it acts "
+        "(e.g. a protected environment)"
+    )
+    assert taxonomy.plain_controls("control.unknown") == "control.unknown"
+
+
 def test_every_control_has_a_rule() -> None:
     assert set(CONTROL_RULES) == set(ControlCategory)
 

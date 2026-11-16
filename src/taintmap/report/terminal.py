@@ -17,7 +17,7 @@ from rich.text import Text
 from taintmap.model import Finding, Node, Severity
 from taintmap.report import at_least, counts, inferred_reasons, role
 from taintmap.scan import ScanResult
-from taintmap.taxonomy import CarrierCategory
+from taintmap.taxonomy import CarrierCategory, plain_controls
 
 STYLES = {
     Severity.CRITICAL: "bold white on red",
@@ -131,7 +131,7 @@ def _finding(result: ScanResult, finding: Finding, console: Console) -> None:
         console.print(_row("via", loc, f"MCP server {node.label}", width))
     for node, loc in related:
         console.print(_row("also", loc, _describe(node), width))
-    console.print(_row("missing", "", finding.missing_control, 0))
+    console.print(_row("missing", "", plain_controls(finding.missing_control), 0))
     console.print(_row("fix", "", finding.fix, 0))
     if finding.inferred:
         for reason in inferred_reasons(graph, finding):

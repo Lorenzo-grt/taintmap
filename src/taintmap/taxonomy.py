@@ -7,6 +7,7 @@ silently.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import StrEnum
 
@@ -179,3 +180,27 @@ def control_can_block(
             return False
         return via_expression_injection or not rule.via_expression_injection
     return True
+
+
+CONTROL_PLAIN_NAMES: dict[ControlCategory, str] = {
+    ControlCategory.HUMAN_APPROVAL: "human approval before it acts (e.g. a protected environment)",
+    ControlCategory.TRUSTED_ACTOR_GATE: "a check that only trusted people can trigger it",
+    ControlCategory.LEAST_PRIVILEGE: "only the permissions it needs",
+    ControlCategory.TOOL_ALLOWLIST: "a narrow list of allowed tools",
+    ControlCategory.INPUT_ISOLATION: "passing the input through an environment variable",
+    ControlCategory.SANDBOX: "a sandbox without credentials",
+    ControlCategory.NETWORK_ALLOWLIST: "outbound access limited to named hosts",
+}
+
+
+def plain_controls(text: str) -> str:
+    """Replace control ids in a sentence such as ``"control.a, control.b or control.c"`` with
+    plain-language names. Unknown ids are left as they are."""
+
+    def name(match: re.Match[str]) -> str:
+        try:
+            return CONTROL_PLAIN_NAMES[ControlCategory(match.group(0))]
+        except ValueError:
+            return match.group(0)
+
+    return re.sub(r"control\.[a-z_]+", name, text)
