@@ -67,6 +67,10 @@ guards any node on that path and its category blocks the path's risk class (see 
 `src/taintmap/graph.py` wraps a `networkx.MultiDiGraph`. It offers `add_fragment`, `nodes_of_kind`,
 `paths(source, sink, max_depth)`, and JSON export (`taintmap graph --json`) for debugging.
 
+Node ids are unique: re-adding an identical node is a no-op, while the same id with different content is an
+error. `paths` returns sorted simple paths of at most `max_depth` edges and does not follow `guarded_by`
+edges, since those point to controls rather than carrying input. The JSON export carries `schema_version: 1`.
+
 ## Parsers
 
 A parser implements:

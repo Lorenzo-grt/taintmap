@@ -28,11 +28,11 @@ Design references: [architecture.md](architecture.md), [threat-model.md](threat-
 **Acceptance:** fresh clone → `pip install -e ".[dev]"` → `taintmap version` works; CI is green.
 
 ### T1. Core model and graph
-- [ ] `model.py`: `Location`, `Node`, `Edge`, `Finding`, `GraphFragment` as in architecture.md, with the
+- [x] `model.py`: `Location`, `Node`, `Edge`, `Finding`, `GraphFragment` as in architecture.md, with the
       `kind` and edge-kind enums.
-- [ ] `graph.py`: `Graph` with `add_fragment`, `nodes_of_kind`, `paths(source_id, sink_id, max_depth=8)`
+- [x] `graph.py`: `Graph` with `add_fragment`, `nodes_of_kind`, `paths(source_id, sink_id, max_depth=8)`
       returning simple paths, and `to_json()`.
-- [ ] Node ids are unique; adding a duplicate id with different content raises a clear error.
+- [x] Node ids are unique; adding a duplicate id with different content raises a clear error.
 
 **Acceptance:** unit tests cover fragment merging, duplicate ids, path search on a small hand-built graph,
 and JSON round-trip.
