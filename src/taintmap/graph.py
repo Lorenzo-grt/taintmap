@@ -55,6 +55,7 @@ class Graph:
 
     def __init__(self) -> None:
         self._g: nx.MultiDiGraph[str] = nx.MultiDiGraph()
+        self._flow: nx.DiGraph[str] | None = None
 
     # -- construction -------------------------------------------------------------------------
 
@@ -81,6 +82,7 @@ class Graph:
                         end, f"edge {edge.kind.value} {edge.src} -> {edge.dst} at {edge.location}"
                     )
 
+        self._flow = None
         for node in pending.values():
             if node.id not in self._g:
                 self._g.add_node(node.id, node=node)
@@ -130,12 +132,45 @@ class Graph:
         wanted = NodeKind(kind)
         return [n for n in self.nodes() if n.kind == wanted]
 
-    def paths(self, source_id: str, sink_id: str, max_depth: int = 8) -> list[list[str]]:
+    def edges_between(self, src: str, dst: str) -> list[Edge]:
+        """All edges from ``src`` to ``dst``, in a deterministic order."""
+        data = self._g.get_edge_data(src, dst)
+        if not data:
+            return []
+        return sorted((attrs["edge"] for attrs in data.values()), key=Edge.sort_key)
+
+    def out_edges(self, node_id: str) -> list[Edge]:
+        """All edges leaving a node, in a deterministic order."""
+        return sorted(
+            (data["edge"] for _, _, data in self._g.out_edges(node_id, data=True)),
+            key=Edge.sort_key,
+        )
+
+    def _flow_graph(self) -> nx.DiGraph[str]:
+        if self._flow is None:
+            flow: nx.DiGraph[str] = nx.DiGraph()
+            flow.add_nodes_from(sorted(self._g.nodes))
+            flow.add_edges_from(
+                sorted(
+                    (u, v)
+                    for u, v, data in self._g.edges(data=True)
+                    if data["edge"].kind not in _NON_FLOW_EDGES
+                )
+            )
+            self._flow = flow
+        return self._flow
+
+    def paths(
+        self, source_id: str, sink_id: str, max_depth: int = 8, limit: int | None = None
+    ) -> list[list[str]]:
         """Return every simple path from source to sink with at most ``max_depth`` edges.
 
         Paths are lists of node ids, sorted, without duplicates (parallel edges between the same two
-        nodes yield one path). ``guarded_by`` edges are not followed.
+        nodes yield one path). ``guarded_by`` edges are not followed. With ``limit``, at most that
+        many paths are returned: the shortest ones, ties broken by node ids.
         """
+        if limit is not None and limit < 1:
+            raise ValueError(f"limit must be at least 1, got {limit}")
         if max_depth < 1:
             raise ValueError(f"max_depth must be at least 1, got {max_depth}")
         for node_id in (source_id, sink_id):
@@ -144,15 +179,12 @@ class Graph:
         if source_id == sink_id:
             return []
 
-        flow: nx.DiGraph[str] = nx.DiGraph()
-        flow.add_nodes_from(self._g.nodes)
-        flow.add_edges_from(
-            (u, v)
-            for u, v, data in self._g.edges(data=True)
-            if data["edge"].kind not in _NON_FLOW_EDGES
-        )
+        flow = self._flow_graph()
         found = {tuple(p) for p in nx.all_simple_paths(flow, source_id, sink_id, cutoff=max_depth)}
-        return [list(p) for p in sorted(found)]
+        if limit is None:
+            return [list(p) for p in sorted(found)]
+        shortest = sorted(found, key=lambda p: (len(p), p))[:limit]
+        return [list(p) for p in sorted(shortest)]
 
     # -- serialisation ------------------------------------------------------------------------
 

@@ -103,10 +103,10 @@ and JSON round-trip.
 **Acceptance:** fixtures for each supported file format; tests for unknown servers and hardcoded secrets.
 
 ### T8. Linking and path search
-- [ ] `link.py`: merge fragments; connect nodes across files where names match (for example, a workflow
+- [x] `link.py`: merge fragments; connect nodes across files where names match (for example, a workflow
       step that loads a repo's `.mcp.json`).
-- [ ] `controls.py`: given a path, decide whether an effective control blocks it, using the taxonomy.
-- [ ] Path search from every source to every sink with a depth limit and a cap on paths per pair.
+- [x] `controls.py`: given a path, decide whether an effective control blocks it, using the taxonomy.
+- [x] Path search from every source to every sink with a depth limit and a cap on paths per pair.
 
 **Acceptance:** tests where a control blocks a path and where an unrelated control does not.
 

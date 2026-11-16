@@ -1,0 +1,13 @@
+on: issue_comment
+permissions:
+  contents: write
+jobs:
+  agent:
+    if: github.event.comment.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_args: --allowedTools "mcp__fetch__fetch,Edit"
+          anthropic_api_key: ${{ secrets.FAKE_ANTHROPIC_KEY }}

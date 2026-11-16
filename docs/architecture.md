@@ -64,6 +64,24 @@ guards any node on that path and its category blocks the path's risk class (see 
 `evidence` (one location per hop), `missing_control`, `fix` (one or two sentences), `fingerprint`
 (stable hash of rule id + path node ids, used to track a finding across runs).
 
+### Linking, controls and path search
+
+`link.py` merges fragments with `build_graph` and adds cross-file edges. A workflow step running a
+catalogued AI action with `mcp_configs` (for example `claude-code-action`, which loads the repository's
+`.mcp.json`) gets a `can_call` edge to each server of that config that its tool config allows
+(`mcp__<server>` in `claude_args` or `settings`), and each allowed server's untrusted source capabilities pass
+input to the step. Link edges carry `attrs.link` and the catalog's evidence level.
+
+`controls.py` decides whether a control blocks a path: it must guard a node on the path, and its category
+must block the path (see the module docstring and the threat model). A trusted-actor gate on
+`author_association` blocks only input whose entry edges name an author it checks, so it never blocks MCP
+tool results; `control.input_isolation` blocks only a non-interpolated `run:` script.
+
+`paths.py` lists candidate paths from every source to every sink (`max_depth` 8 and at most 5 paths per
+pair by default, the shortest first), drops blocked ones unless asked, and marks each path as `inferred`
+(it relies on an inferred catalog claim) and `permissions_assumed` (its sink exists only because default
+token permissions were assumed). Rules read these candidates.
+
 ### Graph
 `src/taintmap/graph.py` wraps a `networkx.MultiDiGraph`. It offers `add_fragment`, `nodes_of_kind`,
 `paths(source, sink, max_depth)`, and JSON export (`taintmap graph --json`) for debugging.
@@ -201,8 +219,9 @@ src/taintmap/
   loaders/            yaml_lines.py, json_lines.py
   parsers/            Parser protocol, github_actions.py, mcp_config.py
   catalog/            *.yaml data + loader + schemas
-  link.py             cross-file linking
+  link.py             merging fragments and cross-file linking
   controls.py         control evaluation
+  paths.py            candidate paths from sources to sinks
   rules/              tm001_*.py ...
   report/             terminal.py, json_report.py
 benchmark/

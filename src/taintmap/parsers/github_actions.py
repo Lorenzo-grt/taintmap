@@ -651,6 +651,15 @@ class _Workflow:
         if uses:
             attrs["uses"] = uses
         if action:
+            with_values = step.get("with")
+            if isinstance(with_values, CommentedMap):
+                tool_config = {
+                    name: with_values[name]
+                    for name in action.tool_config_inputs
+                    if isinstance(with_values.get(name), str)
+                }
+                if tool_config:
+                    attrs["tool_config"] = tool_config
             attrs["ai_action"] = action.id
             attrs["source_url"] = action.source_url
             attrs["evidence"] = action.evidence.value

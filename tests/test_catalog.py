@@ -62,6 +62,7 @@ def test_missing_or_bad_evidence_is_rejected() -> None:
     _broken("ai_actions", lambda raw: raw["actions"][0].pop("source_url"))
     _broken("ai_actions", lambda raw: raw["actions"][0].pop("evidence_reason"))
     _broken("ai_actions", lambda raw: raw["actions"][0].pop("reads_event_evidence"))
+    _broken("ai_actions", lambda raw: raw["actions"][0].pop("mcp_configs_reason"))
     _broken("ai_actions", lambda raw: raw["actions"][0].update(evidence="guessed"))
     _broken("mcp_servers", lambda raw: raw["servers"][0].update(source_url="http://insecure"))
     _broken("mcp_servers", lambda raw: raw["servers"][0]["capabilities"][0].pop("evidence"))

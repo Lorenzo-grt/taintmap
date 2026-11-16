@@ -45,6 +45,40 @@
           "title": "Id",
           "type": "string"
         },
+        "mcp_configs": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Mcp Configs",
+          "type": "array"
+        },
+        "mcp_configs_evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Evidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mcp_configs_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mcp Configs Reason"
+        },
         "notes": {
           "anyOf": [
             {

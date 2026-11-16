@@ -148,6 +148,9 @@ class AiAction(_Sourced):
     credential_inputs: list[Name]
     sandbox_inputs: list[Name]
     actor_gate_inputs: list[Name]
+    mcp_configs: list[Name] = Field(default_factory=list)
+    mcp_configs_evidence: Evidence | None = None
+    mcp_configs_reason: Reason | None = None
     reads_event: bool
     reads_event_evidence: Evidence | None = None
     reads_event_reason: Reason | None = None
@@ -159,6 +162,8 @@ class AiAction(_Sourced):
             raise ValueError(f"{self.id}: an AI action needs prompt_inputs or reads_event")
         if self.reads_event and (self.reads_event_evidence is None or not self.reads_event_reason):
             raise ValueError(f"{self.id}: reads_event needs reads_event_evidence and a reason")
+        if self.mcp_configs and (self.mcp_configs_evidence is None or not self.mcp_configs_reason):
+            raise ValueError(f"{self.id}: mcp_configs needs mcp_configs_evidence and a reason")
         for field in (
             "prompt_inputs",
             "tool_config_inputs",
@@ -179,6 +184,9 @@ class AiActionsCatalog(_Model):
         _unique([a.id for a in self.actions], "action id")
         _unique([a.uses.lower() for a in self.actions], "action uses")
         return self
+
+    def by_id(self, action_id: str) -> AiAction | None:
+        return next((a for a in self.actions if a.id == action_id), None)
 
     def find(self, uses: str) -> AiAction | None:
         """The action a step's ``uses:`` value refers to, ignoring ``@ref`` and case."""
