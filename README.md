@@ -2,8 +2,9 @@
 
 **Map how untrusted input flows through your AI agents, automations and code, before attackers do.**
 
-> **Status: design stage.** There is no usable release yet. This repository holds the vision, the design and
-> the roadmap. Feedback and contributors are very welcome; see [Contributing](#contributing).
+> **Status: v0.1.0, early.** taintmap scans GitHub Actions workflows and MCP client configs today; the code
+> layer (Java/Spring) and SARIF output are planned. Feedback and contributors are very welcome; see
+> [Contributing](#contributing).
 
 ---
 
@@ -32,23 +33,53 @@ application code. Nobody draws the whole map. taintmap does.
 4. **Reuse existing scanners** as inputs instead of rewriting them, and add the cross-system view on top.
 5. **Report where developers already look**: terminal, JSON and SARIF (GitHub's Security tab).
 
-Planned usage:
+## Usage
+
+Install from the v0.1.0 tag and scan a repository:
 
 ```bash
-pip install taintmap
+pip install "git+https://github.com/aakashsiwach/taintmap@v0.1.0"
 taintmap scan .
+taintmap scan . --format json --output taintmap.json
+taintmap scan . --fail-on high --default-token-permissions read
 ```
 
-Illustrative output (planned format):
+v0.1 reads `.github/workflows/*.yml`, `.mcp.json`, `.cursor/mcp.json`, `.vscode/mcp.json` and
+`claude_desktop_config.json`. Findings are grouped by untrusted source and agent; each hop is shown with
+its `file:line`:
 
 ```text
-HIGH  untrusted-input → destructive-action
-  source  .github/workflows/triage.yml:12   issue body passed to agent prompt
-  agent   agents/triage-agent.yaml:4        has tool: run_sql
-  tool    mcp/db-server.json:18             run_sql allows DELETE, no approval
-  sink    src/main/java/.../UserRepository.java:41   deleteAll()
-  fix     restrict run_sql to SELECT, or require human approval for writes
+== on: issue_comment (.github/workflows/respond.yml:2) -> agent anthropics/claude-code-action@v1 (.github/workflows/respond.yml:9)  [1 finding, highest HIGH]
+
+HIGH     TM001  Untrusted input reaches an AI agent with write access  [inferred]
+  source  .github/workflows/respond.yml:2  on: issue_comment  (source.untrusted.issue_text)
+  agent   .github/workflows/respond.yml:9  anthropics/claude-code-action@v1  (carrier.llm_agent)
+  sink    .github/workflows/respond.yml:4  GITHUB_TOKEN issues: write  (sink.repo.write)
+  missing   a check that only trusted people can trigger it, only the permissions it needs or human approval before it acts (e.g. a protected environment)
+  fix       Gate the job with `if:` on `github.event.comment.author_association` (OWNER, MEMBER or COLLABORATOR), or remove `issues: write` from the job's `permissions:` if the agent does not need it.
 ```
+
+Exit codes: `0` no findings at or above `--fail-on`, `1` findings, `2` usage or parse error. See
+[docs/architecture.md](docs/architecture.md#cli) for every option.
+
+## Results
+
+Accuracy is measured on the open benchmark described in [docs/benchmark.md](docs/benchmark.md). The v0.1.0
+numbers below were measured on commit `411c672` (tag `v0.1.0`) in a single `--final` run of the held-out
+test split, against the original expectations of its eight independently written cases.
+
+| Split | Cases | Recall | Precision | False-positive rate on safe cases |
+|---|---|---|---|---|
+| test (held out) | 8 (5 vulnerable, 3 safe) | 0.80 (4/5) | 0.67 (4/6) | 0.00 (0/3) |
+| dev (used for tuning) | 20 (10 vulnerable, 10 safe) | 1.00 (12/12) | 1.00 (12/12) | 0.00 (0/10) |
+
+Per rule on the test split (recall / precision): TM001 1.00 / 1.00, TM002 1.00 / 0.50, TM003 0.00 / 0.00,
+TM004 1.00 / 1.00, TM005 1.00 / 1.00. Both errors are in one case, `tm003-pr-agent-bash`: the
+command-execution sink was reported on a different line than expected, and a TM002 finding for the agent's
+model credential was not expected. The full output is in
+[results/bench-test-v0.1.txt](results/bench-test-v0.1.txt). Changes made after v0.1.0 are listed under
+*Unreleased* in the [changelog](CHANGELOG.md); they do not change the v0.1.0 numbers, which stay as
+measured.
 
 ## Principles
 
@@ -79,6 +110,7 @@ HIGH  untrusted-input → destructive-action
 | [docs/threat-model.md](docs/threat-model.md) | Sources, carriers, sinks, controls and the v0.1 rules |
 | [docs/benchmark.md](docs/benchmark.md) | How accuracy is measured: cases, matching, metrics, dev/test splits |
 | [docs/plan.md](docs/plan.md) | The task-by-task build plan with acceptance criteria |
+| [CHANGELOG.md](CHANGELOG.md) | What changed in each release |
 
 ## Contributing
 

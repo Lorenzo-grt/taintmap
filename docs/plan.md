@@ -141,8 +141,8 @@ and JSON round-trip.
 **Acceptance:** `taintmap bench --split dev` runs in CI and its output is saved under `results/`.
 
 ### T12. Release v0.1.0 *(needs the maintainer)*
-- [ ] README: replace planned wording with real usage; add benchmark numbers from the test split.
-- [ ] `CHANGELOG.md`.
+- [x] README: replace planned wording with real usage; add benchmark numbers from the test split.
+- [x] `CHANGELOG.md`.
 - [ ] Stop here and ask the maintainer to review, tag and publish. Do not tag, publish or push without
       being asked.
 
