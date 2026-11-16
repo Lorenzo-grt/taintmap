@@ -1,0 +1,25 @@
+Held-out test split for taintmap v0.1.0.
+
+Transcribed from the terminal output of the single `taintmap bench --split test --final` run, made on
+commit 411c672 (tag v0.1.0) against the original case expectations. The test split is not re-run to
+regenerate this file; later commits do not change these numbers.
+
+taintmap benchmark: split test, 8 cases (5 vulnerable, 3 safe)
+
+recall     0.80  (4/5 expected findings matched)
+precision  0.67  (4/6 produced findings matched)
+safe FPR   0.00  (0/3 safe cases with a finding)
+
+rule    expected  matched  produced  recall  precision  safe FPR
+TM001          1        1         1    1.00       1.00      0.00
+TM002          1        1         2    1.00       0.50      0.00
+TM003          1        0         1    0.00       0.00      0.00
+TM004          1        1         1    1.00       1.00      0.00
+TM005          1        1         1    1.00       1.00      0.00
+
+missed (1)
+  tm003-pr-agent-bash  TM003  .github/workflows/review.yml:3 -> .github/workflows/review.yml:15
+
+unexpected (2)
+  tm003-pr-agent-bash  TM002  .github/workflows/review.yml:3 -> .github/workflows/review.yml:13  high
+  tm003-pr-agent-bash  TM003  .github/workflows/review.yml:3 -> .github/workflows/review.yml:11  critical
