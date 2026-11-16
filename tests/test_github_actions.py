@@ -9,6 +9,7 @@ from taintmap.loaders import parse_yaml
 from taintmap.model import EdgeKind, GraphFragment, Node, NodeKind
 from taintmap.parsers import Parser
 from taintmap.parsers.github_actions import (
+    Gate,
     GithubActionsParser,
     context_paths,
     parse_workflow,
@@ -17,6 +18,7 @@ from taintmap.parsers.github_actions import (
     trusted_actor_gate,
     untrusted_contexts,
 )
+from taintmap.taxonomy import control_can_block
 
 FIXTURES = Path(__file__).parent / "fixtures" / "gha"
 
@@ -237,7 +239,11 @@ def test_workflow_read_all_and_job_overrides() -> None:
     p = parsed("permissions.yml")
     assert not [n for n in p.of_category("sink.repo.write") if n.startswith("job:inherits")]
     repo = p.node("job:overrides:permission:sink.repo.write")
-    assert repo.attrs == {"scopes": ["contents", "pull-requests"], "declared": "job"}
+    assert repo.attrs == {
+        "scopes": ["contents", "pull-requests"],
+        "declared": "job",
+        "permissions_assumed": False,
+    }
     assert repo.location.line == 11
     assert p.node("job:overrides:permission:sink.secret.read").attrs["scopes"] == ["id-token"]
     assert p.node("job:overrides:permission:sink.deploy").location.line == 14
@@ -249,7 +255,11 @@ def test_workflow_read_all_and_job_overrides() -> None:
 def test_workflow_level_permissions_apply_to_jobs() -> None:
     p = parsed("comment_agent_event.yml")
     repo = p.node("job:respond:permission:sink.repo.write")
-    assert repo.attrs == {"scopes": ["issues"], "declared": "workflow"}
+    assert repo.attrs == {
+        "scopes": ["issues"],
+        "declared": "workflow",
+        "permissions_assumed": False,
+    }
     assert repo.location.line == 4
 
 
@@ -322,26 +332,75 @@ def test_bypassable_and_negative_conditions_are_not_gates() -> None:
     assert not p.has("job:negative:if:trusted_actor")
 
 
+COMMENT_AA = "github.event.comment.author_association"
+ISSUE_AA = "github.event.issue.author_association"
+
+
 @pytest.mark.parametrize(
     ("condition", "expected"),
     [
-        ("github.event.comment.author_association == 'OWNER'", "author_association"),
-        ("'MEMBER' == github.event.issue.author_association", "author_association"),
-        ("${{ github.event.comment.author_association == 'COLLABORATOR' }}", "author_association"),
-        ("github.event.comment.author_association == 'CONTRIBUTOR'", None),
-        ("github.event.comment.author_association != 'NONE'", None),
+        (f"{COMMENT_AA} == 'OWNER'", Gate("author_association", (COMMENT_AA,))),
+        (f"'MEMBER' == {ISSUE_AA}", Gate("author_association", (ISSUE_AA,))),
         (
-            'contains(fromJSON(\'["OWNER", "NONE"]\'), github.event.comment.author_association)',
-            None,
+            "${{ github.event['comment']['author_association'] == 'COLLABORATOR' }}",
+            Gate("author_association", (COMMENT_AA,)),
         ),
-        ("github.event.label.name == 'safe-to-run'", "label"),
+        (
+            f'contains(fromJSON(\'["OWNER", "MEMBER"]\'), {COMMENT_AA})',
+            Gate("author_association", (COMMENT_AA,)),
+        ),
+        (
+            f"{COMMENT_AA} == 'OWNER' || {COMMENT_AA} == 'MEMBER'",
+            Gate("author_association", (COMMENT_AA,)),
+        ),
+        (
+            f"{COMMENT_AA} == 'OWNER' && {ISSUE_AA} == 'OWNER'",
+            Gate("author_association", (COMMENT_AA, ISSUE_AA)),
+        ),
+        # Each alternative trusts a different author, so neither author is always checked.
+        (f"{COMMENT_AA} == 'OWNER' || {ISSUE_AA} == 'OWNER'", None),
+        (
+            f"contains(github.event.issue.labels.*.name, 'ok') || {COMMENT_AA} == 'OWNER'",
+            Gate("author_association", (COMMENT_AA,)),
+        ),
+        (f"{COMMENT_AA} == 'CONTRIBUTOR'", None),
+        (f"{COMMENT_AA} != 'NONE'", None),
+        (f'contains(fromJSON(\'["OWNER", "NONE"]\'), {COMMENT_AA})', None),
+        (f"!contains(fromJSON('[\"OWNER\"]'), {COMMENT_AA})", None),
+        ("github.event.label.name == 'safe-to-run'", Gate("label")),
         ("!contains(github.event.issue.labels.*.name, 'skip')", None),
         ("github.event_name == 'issues'", None),
         ("always()", None),
     ],
 )
-def test_trusted_actor_gate(condition: str, expected: str | None) -> None:
+def test_trusted_actor_gate(condition: str, expected: Gate | None) -> None:
     assert trusted_actor_gate(condition) == expected
+
+
+def test_gate_records_which_author_it_checks() -> None:
+    p = parsed("gates.yml")
+    assert p.node("job:owner_only:if:trusted_actor").attrs["checks"] == [COMMENT_AA]
+    assert p.node("job:from_json:if:trusted_actor").attrs["checks"] == [COMMENT_AA]
+    assert p.node("job:label_step:step:0:if:trusted_actor").attrs["checks"] == []
+
+
+def test_issue_author_gate_does_not_cover_the_commenter() -> None:
+    # The workflow checks who opened the issue, but interpolates the comment, which anyone can
+    # write on a maintainer's issue. The input edge names the comment author, the gate the issue.
+    p = parsed("gate_bypass.yml")
+    gate = p.node("job:reply:if:trusted_actor")
+    assert gate.attrs["checks"] == [ISSUE_AA]
+    edges = [
+        e
+        for e in p.fragment.edges
+        if e.src == p.prefix + "on:issue_comment" and e.kind == EdgeKind.PASSES_INPUT
+    ]
+    by_author = {e.attrs["author"]: e.attrs for e in edges}
+    assert by_author["comment"]["author_association"] == COMMENT_AA
+    assert by_author["comment"]["contexts"] == ["github.event.comment.body"]
+    assert by_author["issue"]["author_association"] == ISSUE_AA
+    assert by_author["issue"]["contexts"] == ["github.event.issue.title"]
+    assert COMMENT_AA not in gate.attrs["checks"]
 
 
 # -- human approval -------------------------------------------------------------------------------
@@ -414,11 +473,15 @@ def test_context_paths_normalise_forms() -> None:
 
 def test_untrusted_contexts_maps_to_triggers() -> None:
     found = untrusted_contexts("${{ github.event.comment.body }} ${{ github.event.issue.number }}")
+    body = {"comment": {"github.event.comment.body"}}
     assert found == {
-        "issue_comment": {"github.event.comment.body"},
-        "discussion_comment": {"github.event.comment.body"},
-        "pull_request_review_comment": {"github.event.comment.body"},
+        "issue_comment": body,
+        "discussion_comment": body,
+        "pull_request_review_comment": body,
     }
+    whole = untrusted_contexts("${{ toJSON(github.event) }}")
+    assert set(whole["issue_comment"]) == {"issue", "comment"}
+    assert set(whole["workflow_run"]) == {None}
     assert untrusted_contexts("github.event.issue.title") == {}  # not inside ${{ }}
 
 
@@ -433,3 +496,74 @@ def test_references_env() -> None:
     assert references_env("Write-Output $env:TITLE", "TITLE")
     assert references_env("echo %TITLE%", "TITLE")
     assert not references_env("echo $TITLES", "TITLE")
+
+
+# -- review decisions -----------------------------------------------------------------------------
+
+
+def test_default_permission_sinks_are_marked_assumed() -> None:
+    p = parsed("default_permissions.yml")
+    for sink in ("job:build:permission:sink.repo.write", "job:build:permission:sink.deploy"):
+        assert p.node(sink).attrs["permissions_assumed"] is True
+    assert p.node("job:build").attrs["permissions"] == {"declared": "default", "assumed": "write"}
+
+
+def test_default_token_permissions_read_grants_nothing() -> None:
+    parser = GithubActionsParser(default_token_permissions="read")
+    fragment = parser.parse(FIXTURES / "default_permissions.yml", FIXTURES)
+    assert not [n for n in fragment.nodes if n.id.endswith(("sink.repo.write", "sink.deploy"))]
+    job = next(n for n in fragment.nodes if n.id.endswith(":job:build"))
+    assert job.attrs["permissions"] == {"declared": "default", "assumed": "read"}
+    # Explicit permissions are unaffected by the option.
+    explicit = parser.parse(FIXTURES / "permissions.yml", FIXTURES)
+    assert any(n.id.endswith("overrides:permission:sink.repo.write") for n in explicit.nodes)
+
+
+def test_declared_permissions_are_kept_on_the_job() -> None:
+    p = parsed("permissions.yml")
+    assert p.node("job:inherits").attrs["permissions"] == {
+        "declared": "workflow",
+        "line": 2,
+        "value": "read-all",
+    }
+    assert p.node("job:overrides").attrs["permissions"] == {
+        "declared": "job",
+        "line": 10,
+        "value": {
+            "contents": "write",
+            "pull-requests": "write",
+            "id-token": "write",
+            "packages": "write",
+            "issues": "read",
+        },
+    }
+
+
+def test_reads_event_edge_is_inferred() -> None:
+    p = parsed("comment_agent_event.yml")
+    (edge,) = [
+        e
+        for e in p.fragment.edges
+        if e.src == p.prefix + "on:issue_comment" and e.dst == p.prefix + "job:respond:step:0"
+    ]
+    assert edge.attrs["reads_event"] is True
+    assert edge.attrs["evidence"] == "inferred"
+    assert edge.attrs["evidence_reason"]
+    assert edge.attrs["author_association"] == COMMENT_AA
+
+
+def test_env_passed_input_still_flows_to_other_sinks() -> None:
+    p = parsed("isolation_flow.yml")
+    step = p.prefix + "job:safe:step:0"
+    control = p.node("job:safe:step:0:input_isolation")
+    assert control.attrs["referenced"] == ["TITLE"]
+    source = p.prefix + "on:issues"
+    secret = p.prefix + "job:safe:step:0:env:TOKEN:secret:FAKE_TOKEN_FOR_TESTS"
+    write = p.prefix + "job:safe:permission:sink.repo.write"
+    # The isolated input still reaches the step and, through it, the secret and the write token.
+    assert p.graph.paths(source, secret) == [[source, step, secret]]
+    assert [source, step, write] in p.graph.paths(source, write)
+    # input_isolation can only ever block code execution reached by expression injection.
+    assert control_can_block(control.category, "sink.code_exec", via_expression_injection=True)
+    assert not control_can_block(control.category, "sink.secret.read")
+    assert not control_can_block(control.category, "sink.repo.write")

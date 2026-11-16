@@ -62,6 +62,10 @@ access is the classic dangerous combination (often called the "lethal trifecta")
 | `control.sandbox` | `sink.data.write`, `sink.code_exec` | Tools confined to a temporary directory or container without credentials |
 | `control.network_allowlist` | `sink.network.outbound` | Outbound access limited to named hosts |
 
+A `control.trusted_actor_gate` on `author_association` only blocks input written by the actor it
+checks. On `issue_comment`, a check of `github.event.issue.author_association` says who opened the
+issue, not who wrote the comment, so it does not block the comment body.
+
 A control only counts when taintmap can see it in the scanned files. Controls that exist elsewhere (for
 example, in organisation settings) can be declared in `taintmap.yaml` (v0.2).
 

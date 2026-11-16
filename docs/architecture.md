@@ -54,6 +54,7 @@ optional `snippet` (one line, trimmed).
 | `src`, `dst` | Node ids |
 | `kind` | `passes_input`, `can_call`, `runs_with`, `invokes`, `writes_to`, `guarded_by` |
 | `location` | Where the relationship is declared |
+| `attrs` | Free-form dict, e.g. the author of the input a `passes_input` edge carries, or `evidence` |
 
 `guarded_by` edges point from a node to a `control` node. A control is **effective** for a path when it
 guards any node on that path and its category blocks the path's risk class (see threat model).
@@ -105,14 +106,14 @@ for SARIF from other scanners (v0.3).
 |---|---|
 | Trigger in the triggers catalog | `source` node with the catalog's category |
 | Job, step | `carrier.workflow_step`; a step using a catalogued AI action is `carrier.llm_agent` |
-| `${{ }}` reading an untrusted context in `with:`, `env:` or `run:` | `passes_input` edge from each workflow trigger that fills the context; workflow and job `env:` feed the job, which passes input to its steps |
-| AI action with `reads_event: true` | `passes_input` from every untrusted trigger, even without an expression |
+| `${{ }}` reading an untrusted context in `with:`, `env:` or `run:` | `passes_input` edge from each workflow trigger that fills the context, one per author of the input (`attrs.author`, `attrs.author_association`, `attrs.contexts`); workflow and job `env:` feed the job, which passes input to its steps |
+| AI action with `reads_event: true` | `passes_input` from every untrusted trigger, even without an expression; the edge carries the catalog's evidence level (`inferred` for `claude-code-action`) |
 | `run:` | `sink.code_exec` (`attrs.expression_injection` when untrusted input is interpolated) |
-| Effective `GITHUB_TOKEN` permissions | one sink per category the write scopes grant (`sink.repo.write`, `sink.deploy`, `sink.secret.read` for `id-token`). Job level overrides workflow level; with neither, the permissive default is assumed because the repository setting is not visible |
+| Effective `GITHUB_TOKEN` permissions | one sink per category the write scopes grant (`sink.repo.write`, `sink.deploy`, `sink.secret.read` for `id-token`). Job level overrides workflow level. With neither, the write default is assumed because the repository setting is not visible (`--default-token-permissions read` changes that); such sinks have `attrs.permissions_assumed = true`. The job's declared permissions are kept in `attrs.permissions` for fix text |
 | `secrets.*` in `env:` or `with:` | `sink.secret.read` (workflow and job level reach every step) |
-| `if:` requiring `author_association` OWNER, MEMBER or COLLABORATOR, or a label | `control.trusted_actor_gate`; every `\|\|` alternative must be such a check |
+| `if:` requiring `author_association` OWNER, MEMBER or COLLABORATOR (`==` or `contains(fromJSON('[...]'), ...)`), or a label | `control.trusted_actor_gate`; every `\|\|` alternative must be such a check. `attrs.checks` lists the `author_association` contexts all alternatives require; the gate only blocks input whose `passes_input` edge names one of them (checking the issue author does not cover a commenter). Label gates block input from any author |
 | `environment:` | `control.human_approval`, recorded as declared but not verified (required reviewers live in repository settings) |
-| `run:` with no interpolation whose untrusted input arrives only through `env:` | `control.input_isolation` |
+| `run:` with no interpolation whose untrusted input arrives only through `env:` | `control.input_isolation`, which blocks only `sink.code_exec` reached by expression injection; the input still flows to the step's other sinks |
 
 ### Line numbers
 YAML is loaded with `ruamel.yaml` in round-trip mode, which keeps line information for every mapping and
@@ -165,6 +166,7 @@ findings. Rules never parse files; they only read the graph.
 
 ```text
 taintmap scan [PATH] [--format terminal|json] [--output FILE] [--min-severity LEVEL] [--fail-on LEVEL]
+                [--default-token-permissions write|read]
 taintmap graph [PATH] --json          # dump the graph for debugging
 taintmap bench [--split dev|test]     # run the benchmark and report recall and false-positive rate
 taintmap version

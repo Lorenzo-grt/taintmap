@@ -30,7 +30,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
@@ -67,9 +67,14 @@ SCOPE_SINKS: dict[str, SinkCategory] = {
     "statuses": SinkCategory.REPO_WRITE,
 }
 
-# Write scopes of the permissive default, used when a workflow sets no permissions. The repository
-# setting may restrict the default, but that setting is not visible in the files, so taintmap
-# assumes the permissive one. https://docs.github.com/en/actions/concepts/security/github_token
+# Write scopes of the permissive default, used when a workflow sets no permissions.
+# Since 2023-02-02, new personal repositories and organisations default to a read-only token, but
+# existing ones keep their previous (often read/write) setting, and the setting is not visible in
+# the files. taintmap therefore assumes write unless told otherwise
+# (``default_token_permissions="read"``), and marks such sinks ``attrs.permissions_assumed``.
+# https://github.blog/changelog/2023-02-02-github-actions-updating-the-default-github_token-permissions-to-read-only/
+# https://docs.github.com/en/actions/concepts/security/github_token
+DefaultTokenPermissions = Literal["write", "read"]
 DEFAULT_WRITE_SCOPES = (
     "actions",
     "checks",
@@ -96,11 +101,13 @@ _SEGMENT = re.compile(r"\.\s*([A-Za-z_][\w-]*|\*)|\[\s*(?:'([^']*)'|\"([^\"]*)\"
 _SECRET = re.compile(
     r"(?<![\w.])secrets\s*(?:\.\s*([A-Za-z_][\w-]*)|\[\s*(?:'([^']+)'|\"([^\"]+)\")\s*\])"
 )
+_CTX = r"(?<![\w.])github(?:\s*\.\s*[A-Za-z_][\w-]*|\s*\[\s*(?:'[^']*'|\"[^\"]*\")\s*\])+"
 _ASSOC_EQ = re.compile(
-    r"author_association\s*==\s*['\"](\w+)['\"]|['\"](\w+)['\"]\s*==\s*[\w.\[\]'\"]*author_association"
+    rf"(?P<lctx>{_CTX})\s*==\s*'(?P<lval>\w+)'|'(?P<rval>\w+)'\s*==\s*(?P<rctx>{_CTX})"
 )
 _ASSOC_IN = re.compile(
-    r"(?<![!\w])contains\(\s*fromJSON\(\s*'(\[[^\]]*\])'\s*\)\s*,\s*[\w.\[\]'\"]*author_association"
+    r"(?<![!\w])contains\(\s*fromJSON\(\s*'(?P<list>\[[^\]]*\])'\s*\)\s*,\s*"
+    rf"(?P<ctx>{_CTX})\s*\)"
 )
 _LABEL_GATE = re.compile(
     r"(?<![!\w])contains\(\s*github\.event\.(?:issue|pull_request|discussion)\.labels\.\*\.name\s*,"
@@ -114,6 +121,9 @@ class GithubActionsParser:
 
     name = "github_actions"
 
+    def __init__(self, default_token_permissions: DefaultTokenPermissions = "write") -> None:
+        self.default_token_permissions = default_token_permissions
+
     def matches(self, path: Path) -> bool:
         parts = path.parts
         return (
@@ -124,12 +134,19 @@ class GithubActionsParser:
         )
 
     def parse(self, path: Path, root: Path) -> GraphFragment:
-        return parse_workflow(load_yaml(path, root))
+        return parse_workflow(
+            load_yaml(path, root), default_token_permissions=self.default_token_permissions
+        )
 
 
-def parse_workflow(doc: YamlDocument) -> GraphFragment:
-    """Turn a loaded workflow into a fragment. Problems become warnings on the fragment."""
-    return _Workflow(doc).build()
+def parse_workflow(
+    doc: YamlDocument, *, default_token_permissions: DefaultTokenPermissions = "write"
+) -> GraphFragment:
+    """Turn a loaded workflow into a fragment. Problems become warnings on the fragment.
+
+    ``default_token_permissions`` is what the token may do when a workflow sets no permissions.
+    """
+    return _Workflow(doc, default_token_permissions).build()
 
 
 # -- expression helpers ---------------------------------------------------------------------------
@@ -176,9 +193,14 @@ def _encloses(path: list[str], pattern: list[str]) -> bool:
     )
 
 
-def untrusted_contexts(text: str) -> dict[str, set[str]]:
-    """Map each catalogued trigger to the untrusted context paths in ``text`` it fills."""
-    found: dict[str, set[str]] = {}
+Taint = dict[str, dict[str | None, set[str]]]
+"""trigger -> author of the input (``None`` when unknown) -> context paths."""
+
+
+def untrusted_contexts(text: str) -> Taint:
+    """Map each catalogued trigger to the untrusted context paths in ``text`` it fills, grouped
+    by the payload object whose author wrote them."""
+    found: Taint = {}
     contexts = catalog.gha_triggers().contexts
     for body in expressions(text):
         for path in context_paths(body):
@@ -187,42 +209,81 @@ def untrusted_contexts(text: str) -> dict[str, set[str]]:
                 pattern = ctx.id.split(".")
                 if _within(parts, pattern) or _encloses(parts, pattern):
                     for trigger in ctx.triggers:
-                        found.setdefault(trigger, set()).add(path)
+                        found.setdefault(trigger, {}).setdefault(ctx.author, set()).add(path)
     return found
 
 
-def trusted_actor_gate(condition: str) -> str | None:
-    """Return ``"author_association"`` or ``"label"`` when an ``if:`` restricts who can run.
+def taint_paths(taint: Taint) -> set[str]:
+    """Every context path in a taint map."""
+    return {path for by_author in taint.values() for paths in by_author.values() for path in paths}
 
-    Every ``||`` alternative must be such a check, otherwise anyone could satisfy the condition
-    through another branch and the gate does not count.
+
+@dataclass(frozen=True)
+class Gate:
+    """A trusted-actor gate read from an ``if:`` condition.
+
+    ``checks`` lists the ``author_association`` contexts (dot form) that every alternative of the
+    condition requires to be OWNER, MEMBER or COLLABORATOR. The gate only blocks input written by
+    those authors: checking ``github.event.issue.author_association`` says nothing about who wrote
+    ``github.event.comment.body``. A ``label`` gate has no checks and blocks input from any author,
+    because only people with triage access can add labels.
+    """
+
+    kind: Literal["author_association", "label"]
+    checks: tuple[str, ...] = ()
+
+
+def trusted_actor_gate(condition: str) -> Gate | None:
+    """Read a trusted-actor gate from an ``if:`` condition, or return ``None``.
+
+    Every ``||`` alternative must be an association or label check, otherwise anyone could satisfy
+    the condition through another branch. With several association alternatives, only the
+    authors that all of them check count.
     """
     text = condition.strip()
     if text.startswith("${{") and text.endswith("}}"):
         text = text[3:-2]
-    kinds: set[str] = set()
+    common: set[str] | None = None
     for operand in text.split("||"):
-        if _association_check(operand):
-            kinds.add("author_association")
-        elif _LABEL_GATE.search(operand):
-            kinds.add("label")
-        else:
+        checked = association_checks(operand)
+        if checked:
+            common = checked if common is None else common & checked
+        elif not _LABEL_GATE.search(operand):
             return None
-    if not kinds:
+    if common is None:
+        return Gate("label")
+    if not common:
         return None
-    return "author_association" if "author_association" in kinds else "label"
+    return Gate("author_association", tuple(sorted(common)))
 
 
-def _association_check(operand: str) -> bool:
+def association_checks(operand: str) -> set[str]:
+    """``author_association`` contexts that an operand requires to be a trusted association."""
+    checked: set[str] = set()
     for match in _ASSOC_EQ.finditer(operand):
-        value = match.group(1) or match.group(2)
-        if value in TRUSTED_ASSOCIATIONS:
-            return True
+        if match.group("lctx"):
+            ctx, value = match.group("lctx"), match.group("lval")
+        else:
+            ctx, value = match.group("rctx"), match.group("rval")
+        path = _single_context(ctx)
+        if path and path.endswith(".author_association") and value in TRUSTED_ASSOCIATIONS:
+            checked.add(path)
     for match in _ASSOC_IN.finditer(operand):
-        values = set(re.findall(r"\"(\w+)\"", match.group(1)))
-        if values and values <= TRUSTED_ASSOCIATIONS:
-            return True
-    return False
+        values = set(re.findall(r'"(\w+)"', match.group("list")))
+        path = _single_context(match.group("ctx"))
+        if (
+            path
+            and path.endswith(".author_association")
+            and values
+            and values <= TRUSTED_ASSOCIATIONS
+        ):
+            checked.add(path)
+    return checked
+
+
+def _single_context(text: str) -> str | None:
+    paths = context_paths(text)
+    return paths[0] if len(paths) == 1 else None
 
 
 def references_env(script: str, name: str) -> bool:
@@ -237,7 +298,7 @@ def references_env(script: str, name: str) -> bool:
 class _EnvVar:
     name: str
     line: int
-    taint: dict[str, set[str]]
+    taint: Taint
     secrets: list[str]
 
 
@@ -250,8 +311,11 @@ class _Scope:
 
 
 class _Workflow:
-    def __init__(self, doc: YamlDocument) -> None:
+    def __init__(
+        self, doc: YamlDocument, default_token_permissions: DefaultTokenPermissions
+    ) -> None:
         self.doc = doc
+        self.default_token_permissions = default_token_permissions
         self.file = doc.file
         self.base = f"gha:{doc.file}"
         self.nodes: dict[str, Node] = {}
@@ -286,17 +350,32 @@ class _Workflow:
         )
         return node_id
 
-    def edge(self, src: str, dst: str, kind: EdgeKind, line: int) -> None:
-        self.edges.append(Edge(src=src, dst=dst, kind=kind, location=self.loc(line)))
+    def edge(self, src: str, dst: str, kind: EdgeKind, line: int, **attrs: Any) -> None:
+        self.edges.append(Edge(src=src, dst=dst, kind=kind, location=self.loc(line), attrs=attrs))
 
-    def feed(self, taint: dict[str, set[str]], dst: str, line: int) -> None:
+    def feed(self, taint: Taint, dst: str, line: int) -> None:
+        """One ``passes_input`` edge per trigger and author of the input.
+
+        ``attrs.author_association`` is the context a trusted-actor gate must check to block it.
+        """
+        triggers = catalog.gha_triggers()
         for trigger in sorted(taint):
-            if trigger in self.sources:
-                self.edge(self.sources[trigger], dst, EdgeKind.PASSES_INPUT, line)
+            if trigger not in self.sources:
+                continue
+            for author, paths in sorted(taint[trigger].items(), key=lambda kv: kv[0] or ""):
+                self.edge(
+                    self.sources[trigger],
+                    dst,
+                    EdgeKind.PASSES_INPUT,
+                    line,
+                    author=author,
+                    author_association=triggers.association(author),
+                    contexts=sorted(paths),
+                )
 
-    def active(self, taint: dict[str, set[str]]) -> dict[str, set[str]]:
+    def active(self, taint: Taint) -> Taint:
         """Only the triggers this workflow actually listens to."""
-        return {t: paths for t, paths in taint.items() if t in self.sources}
+        return {t: by_author for t, by_author in taint.items() if t in self.sources}
 
     # -- walking ----------------------------------------------------------------------------------
 
@@ -326,7 +405,7 @@ class _Workflow:
     def fragment(self) -> GraphFragment:
         return GraphFragment(
             nodes=sorted(self.nodes.values(), key=lambda n: n.id),
-            edges=sorted(set(self.edges), key=Edge.sort_key),
+            edges=sorted({e.model_dump_json(): e for e in self.edges}.values(), key=Edge.sort_key),
             warnings=self.warnings,
         )
 
@@ -353,6 +432,7 @@ class _Workflow:
                 continue
             attrs: dict[str, Any] = {
                 "trigger": name,
+                "author": trigger.author,
                 "source_url": trigger.source_url,
                 "evidence": trigger.evidence.value,
             }
@@ -418,7 +498,11 @@ class _Workflow:
             self.feed(var.taint, job_id, var.line)
         inherited_env = [*workflow.env, *job_env]
 
-        permission_nodes = self.permissions(data, job, job_id, job_line)
+        permission_nodes, declared = self.permissions(data, job, job_id, job_line)
+        job_node = self.nodes[job_id]
+        self.nodes[job_id] = job_node.model_copy(
+            update={"attrs": {**job_node.attrs, "permissions": declared}}
+        )
         controls = self.job_controls(job, job_id, name)
 
         steps = job.get("steps")
@@ -443,8 +527,9 @@ class _Workflow:
 
     def permissions(
         self, data: CommentedMap, job: CommentedMap, job_id: str, job_line: int
-    ) -> list[tuple[str, int]]:
-        """Sinks granted by the job's effective token permissions, as (node id, line)."""
+    ) -> tuple[list[tuple[str, int]], dict[str, Any]]:
+        """Sinks granted by the job's effective token permissions, as (node id, line), and the
+        declared permissions for the job's attrs (used in fix text)."""
         if "permissions" in job:
             owner, declared = job, "job"
         elif "permissions" in data:
@@ -453,10 +538,19 @@ class _Workflow:
             owner, declared = None, "default"
 
         writes: dict[str, int] = {}
+        info: dict[str, Any] = {"declared": declared}
         if owner is None:
-            writes = dict.fromkeys(DEFAULT_WRITE_SCOPES, job_line)
+            info["assumed"] = self.default_token_permissions
+            if self.default_token_permissions == "write":
+                writes = dict.fromkeys(DEFAULT_WRITE_SCOPES, job_line)
         else:
             value = owner["permissions"]
+            info["line"] = key_line(owner, "permissions")
+            info["value"] = (
+                {str(k): str(v) for k, v in value.items()}
+                if isinstance(value, CommentedMap)
+                else str(value)
+            )
             line = key_line(owner, "permissions")
             if value == "write-all":
                 writes = dict.fromkeys(SCOPE_SINKS, line)
@@ -485,9 +579,10 @@ class _Workflow:
                 line,
                 scopes=scopes,
                 declared=declared,
+                permissions_assumed=owner is None,
             )
             out.append((node_id, line))
-        return out
+        return out, info
 
     def job_controls(self, job: CommentedMap, job_id: str, name: str) -> list[tuple[str, int]]:
         out = []
@@ -520,17 +615,18 @@ class _Workflow:
         condition = owner.get("if")
         if not isinstance(condition, str):
             return None
-        kind = trusted_actor_gate(condition)
-        if kind is None:
+        gate = trusted_actor_gate(condition)
+        if gate is None:
             return None
         line = key_line(owner, "if")
         node_id = self.node(
             f"{owner_id}:if:trusted_actor",
             NodeKind.CONTROL,
             ControlCategory.TRUSTED_ACTOR_GATE.value,
-            f"if: {kind}",
+            f"if: {gate.kind}",
             line,
-            gate=kind,
+            gate=gate.kind,
+            checks=list(gate.checks),
             condition=" ".join(condition.split()),
         )
         return node_id, line
@@ -572,7 +668,7 @@ class _Workflow:
                 key_ln = key_line(with_map, key)
                 taint = self.active(untrusted_contexts(value))
                 self.feed(taint, step_id, key_ln)
-                untrusted.update(*taint.values())
+                untrusted |= taint_paths(taint)
                 for secret in secret_names(value):
                     sink = self.secret(step_id, "with", str(key), secret, key_ln)
                     self.edge(step_id, sink, EdgeKind.RUNS_WITH, key_ln)
@@ -583,12 +679,25 @@ class _Workflow:
             self.edge(step_id, sink, EdgeKind.RUNS_WITH, sink_line)
         for var in step_env:
             self.feed(var.taint, step_id, var.line)
-            untrusted.update(*var.taint.values())
+            untrusted |= taint_paths(var.taint)
 
         if action and action.reads_event:
             uses_line = key_line(step, "uses")
-            for trigger in sorted(self.sources):
-                self.edge(self.sources[trigger], step_id, EdgeKind.PASSES_INPUT, uses_line)
+            triggers = catalog.gha_triggers()
+            for name in sorted(self.sources):
+                trigger = triggers.trigger(name)
+                author = trigger.author if trigger else None
+                self.edge(
+                    self.sources[name],
+                    step_id,
+                    EdgeKind.PASSES_INPUT,
+                    uses_line,
+                    author=author,
+                    author_association=triggers.association(author),
+                    reads_event=True,
+                    evidence=(action.reads_event_evidence or action.evidence).value,
+                    evidence_reason=action.reads_event_reason or action.evidence_reason,
+                )
 
         if run is not None:
             self.run_step(step, step_id, run, [*inherited_env, *step_env], untrusted)
@@ -614,7 +723,7 @@ class _Workflow:
         run_line = key_line(step, "run")
         taint = self.active(untrusted_contexts(run))
         self.feed(taint, step_id, run_line)
-        untrusted.update(*taint.values())
+        untrusted |= taint_paths(taint)
         exec_id = self.node(
             f"{step_id}:run",
             NodeKind.SINK,

@@ -67,8 +67,16 @@ def _unique(values: list[str], what: str) -> None:
 # -- GitHub Actions triggers and contexts ---------------------------------------------------------
 
 
+class Author(_Sourced):
+    """A payload object whose author writes untrusted input, and where its association is."""
+
+    id: Name
+    author_association: Annotated[str, StringConstraints(pattern=r"^github\.event\.[a-z_.]+$")]
+
+
 class Trigger(_Sourced):
     id: Name
+    author: Name | None
     description: str = Field(min_length=1)
     source_category: SourceCategory
 
@@ -77,6 +85,7 @@ class Context(_Sourced):
     id: Annotated[str, StringConstraints(pattern=r"^[a-z_]+(\.([A-Za-z0-9_-]+|\*))+$")]
     description: str = Field(min_length=1)
     source_category: SourceCategory
+    author: Name | None
     triggers: list[Name] = Field(min_length=1)
 
     def matches(self, path: str) -> bool:
@@ -90,11 +99,20 @@ class Context(_Sourced):
 
 class GhaTriggersCatalog(_Model):
     version: Literal[1]
+    authors: list[Author]
     triggers: list[Trigger]
     contexts: list[Context]
 
     @model_validator(mode="after")
     def _check(self) -> GhaTriggersCatalog:
+        _unique([a.id for a in self.authors], "author id")
+        authors = {a.id for a in self.authors}
+        named = [(t.id, t.author) for t in self.triggers] + [
+            (c.id, c.author) for c in self.contexts
+        ]
+        for entry_id, author in named:
+            if author is not None and author not in authors:
+                raise ValueError(f"{entry_id} names unknown author {author!r}")
         _unique([t.id for t in self.triggers], "trigger id")
         _unique([c.id for c in self.contexts], "context id")
         known = {t.id for t in self.triggers}
@@ -103,6 +121,11 @@ class GhaTriggersCatalog(_Model):
                 if trigger not in known:
                     raise ValueError(f"context {context.id} names unknown trigger {trigger!r}")
         return self
+
+    def association(self, author: str | None) -> str | None:
+        """The ``author_association`` context of an author id, or ``None``."""
+        found = next((a for a in self.authors if a.id == author), None)
+        return found.author_association if found else None
 
     def trigger(self, name: str) -> Trigger | None:
         return next((t for t in self.triggers if t.id == name), None)

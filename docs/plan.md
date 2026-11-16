@@ -114,6 +114,9 @@ and JSON round-trip.
 - [ ] One module per rule as specified in threat-model.md, each with title, severity, missing control and
       fix text.
 - [ ] Stable fingerprints.
+- [ ] Findings that reach a sink only through assumed default token permissions
+      (`attrs.permissions_assumed`) are one severity level lower, and their fix text says
+      "declare `permissions:` explicitly".
 
 **Acceptance:** each rule has a vulnerable and a safe test fixture.
 
@@ -122,6 +125,9 @@ and JSON round-trip.
 - [ ] Terminal report as in the README example: one block per finding, each hop with `file:line`.
 - [ ] JSON report with `schema_version: 1`.
 - [ ] Exit codes as in architecture.md.
+- [ ] `--default-token-permissions write|read` (default `write`), passed to the GitHub Actions parser.
+- [ ] Findings whose path depends on an `inferred` catalog claim (`attrs.evidence` on a node or edge)
+      are shown as "inferred" in both reports.
 
 **Acceptance:** end-to-end test running the CLI on a fixture repository; snapshot test of JSON output.
 

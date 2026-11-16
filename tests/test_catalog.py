@@ -80,6 +80,16 @@ def test_context_must_name_known_triggers() -> None:
     _broken("gha_triggers", lambda raw: raw["contexts"][0].update(triggers=["push"]))
 
 
+def test_authors_must_exist() -> None:
+    _broken("gha_triggers", lambda raw: raw["contexts"][0].update(author="sender"))
+    _broken("gha_triggers", lambda raw: raw["triggers"][0].update(author="sender"))
+    triggers = catalog.gha_triggers()
+    assert triggers.association("comment") == "github.event.comment.author_association"
+    assert triggers.association(None) is None
+    trigger = triggers.trigger("issue_comment")
+    assert trigger is not None and trigger.author == "comment"
+
+
 def test_duplicate_ids_are_rejected() -> None:
     _broken("ai_actions", lambda raw: raw["actions"].append(raw["actions"][0]))
     _broken("mcp_servers", lambda raw: raw["servers"].append(raw["servers"][0]))

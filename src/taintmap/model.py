@@ -6,6 +6,7 @@ See docs/architecture.md ("Data model") for the meaning of each field.
 from __future__ import annotations
 
 import hashlib
+import json
 from enum import StrEnum
 from typing import Any
 
@@ -107,10 +108,18 @@ class Edge(_Model):
     dst: str = Field(min_length=1)
     kind: EdgeKind
     location: Location
+    attrs: dict[str, Any] = Field(default_factory=dict)
 
-    def sort_key(self) -> tuple[str, str, str, str, int]:
+    def sort_key(self) -> tuple[str, str, str, str, int, str]:
         """A key that orders edges deterministically."""
-        return (self.src, self.dst, self.kind.value, self.location.file, self.location.line)
+        return (
+            self.src,
+            self.dst,
+            self.kind.value,
+            self.location.file,
+            self.location.line,
+            json.dumps(self.attrs, sort_keys=True, default=str),
+        )
 
 
 def compute_fingerprint(rule_id: str, path: list[str]) -> str:

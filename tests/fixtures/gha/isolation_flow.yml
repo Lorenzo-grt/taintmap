@@ -1,0 +1,11 @@
+on: issues
+permissions:
+  contents: write
+jobs:
+  safe:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          TITLE: ${{ github.event.issue.title }}
+          TOKEN: ${{ secrets.FAKE_TOKEN_FOR_TESTS }}
+        run: ./label.sh "$TITLE"

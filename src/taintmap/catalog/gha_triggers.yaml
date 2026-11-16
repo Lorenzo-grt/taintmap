@@ -5,6 +5,10 @@
 # Contexts list the catalogued triggers whose event payload fills them; a context is only a source
 # when the workflow is started by one of those triggers.
 #
+# `author` names the payload object whose author wrote the input (for a trigger: the actor whose
+# content starts the run). A trusted-actor gate only blocks input whose author it checks, through
+# that object's `author_association` listed under `authors`. `null` means no such field exists.
+#
 # Context ids are expression paths in dot form. `*` matches one path segment (an array index or a
 # key). The parser normalises `github.event['issue']['title']` to `github.event.issue.title`.
 #
@@ -14,8 +18,34 @@
 # Schema: schemas/gha_triggers.schema.json.
 version: 1
 
+authors:
+  - id: issue
+    author_association: github.event.issue.author_association
+    source_url: https://docs.github.com/en/rest/issues/issues
+    evidence: documented
+    evidence_reason: The issue object, embedded in issue webhook payloads, has author_association.
+
+  - id: comment
+    author_association: github.event.comment.author_association
+    source_url: https://docs.github.com/en/rest/issues/comments
+    evidence: documented
+    evidence_reason: The comment object, embedded in comment webhook payloads, has author_association.
+
+  - id: pull_request
+    author_association: github.event.pull_request.author_association
+    source_url: https://docs.github.com/en/rest/pulls/pulls
+    evidence: documented
+    evidence_reason: The pull request object, embedded in pull request payloads, has author_association.
+
+  - id: discussion
+    author_association: github.event.discussion.author_association
+    source_url: https://docs.github.com/en/webhooks/webhook-events-and-payloads#discussion
+    evidence: inferred
+    evidence_reason: Assumed to match issues and comments; the payload page does not list the field.
+
 triggers:
   - id: issues
+    author: issue
     description: Runs when an issue is opened, edited or otherwise changed. Anyone who can open an issue controls its title and body.
     source_category: source.untrusted.issue_text
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issues
@@ -23,6 +53,7 @@ triggers:
     evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: issue_comment
+    author: comment
     description: Runs when a comment on an issue or pull request is created, edited or deleted. Anyone who can comment controls the comment body.
     source_category: source.untrusted.issue_text
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#issue_comment
@@ -30,6 +61,7 @@ triggers:
     evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: pull_request_target
+    author: pull_request
     description: Runs in the context of the base repository, with its secrets and a write token, for pull requests including those from forks.
     source_category: source.untrusted.pr_content
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_target
@@ -37,6 +69,7 @@ triggers:
     evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: discussion
+    author: discussion
     description: Runs when a discussion is created or changed. Anyone who can start a discussion controls its title and body.
     source_category: source.untrusted.discussion
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#discussion
@@ -44,6 +77,7 @@ triggers:
     evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: discussion_comment
+    author: comment
     description: Runs when a comment on a discussion is created, edited or deleted.
     source_category: source.untrusted.discussion
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#discussion_comment
@@ -51,6 +85,7 @@ triggers:
     evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: pull_request_review_comment
+    author: comment
     description: Runs when a review comment on a pull request diff is created, edited or deleted.
     source_category: source.untrusted.discussion
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request_review_comment
@@ -58,6 +93,7 @@ triggers:
     evidence_reason: The cited GitHub documentation describes this event and who can cause it.
 
   - id: workflow_run
+    author: null
     description: Runs after another workflow, with the base repository's secrets and a write token, even when the triggering run came from a fork.
     source_category: source.untrusted.pr_content
     source_url: https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_run
@@ -66,6 +102,7 @@ triggers:
 
 contexts:
   - id: github.event.issue.title
+    author: issue
     description: Issue title.
     source_category: source.untrusted.issue_text
     triggers: [issues, issue_comment]
@@ -74,6 +111,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.issue.body
+    author: issue
     description: Issue body.
     source_category: source.untrusted.issue_text
     triggers: [issues, issue_comment]
@@ -82,6 +120,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.comment.body
+    author: comment
     description: Body of an issue, pull request, discussion or review comment.
     source_category: source.untrusted.issue_text
     triggers: [issue_comment, discussion_comment, pull_request_review_comment]
@@ -90,6 +129,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.title
+    author: pull_request
     description: Pull request title.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
@@ -98,6 +138,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.body
+    author: pull_request
     description: Pull request body.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
@@ -106,6 +147,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.head.ref
+    author: pull_request
     description: Branch name of the pull request head, chosen by its author.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
@@ -114,6 +156,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.head.label
+    author: pull_request
     description: Label of the pull request head (owner and branch name).
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
@@ -122,6 +165,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.pull_request.head.repo.default_branch
+    author: pull_request
     description: Default branch name of the fork the pull request comes from.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target, pull_request_review_comment]
@@ -130,6 +174,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.head_ref
+    author: pull_request
     description: Head branch of the pull request that started the workflow.
     source_category: source.untrusted.pr_content
     triggers: [pull_request_target]
@@ -138,6 +183,7 @@ contexts:
     evidence_reason: Listed as potentially untrusted input by GitHub Security Lab.
 
   - id: github.event.discussion.title
+    author: discussion
     description: Discussion title.
     source_category: source.untrusted.discussion
     triggers: [discussion, discussion_comment]
@@ -146,6 +192,7 @@ contexts:
     evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.discussion.body
+    author: discussion
     description: Discussion body.
     source_category: source.untrusted.discussion
     triggers: [discussion, discussion_comment]
@@ -154,6 +201,7 @@ contexts:
     evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.workflow_run.head_commit.message
+    author: null
     description: Commit message of the head commit of the triggering run, which may come from a fork.
     source_category: source.untrusted.pr_content
     triggers: [workflow_run]
@@ -162,6 +210,7 @@ contexts:
     evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.workflow_run.head_commit.author.name
+    author: null
     description: Author name of the head commit of the triggering run.
     source_category: source.untrusted.pr_content
     triggers: [workflow_run]
@@ -170,6 +219,7 @@ contexts:
     evidence_reason: The cited GitHub documentation treats contexts with this ending as untrusted input.
 
   - id: github.event.workflow_run.head_commit.author.email
+    author: null
     description: Author email of the head commit of the triggering run.
     source_category: source.untrusted.pr_content
     triggers: [workflow_run]

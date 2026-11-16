@@ -1,8 +1,61 @@
 {
   "$defs": {
+    "Author": {
+      "additionalProperties": false,
+      "description": "A payload object whose author writes untrusted input, and where its association is.",
+      "properties": {
+        "author_association": {
+          "pattern": "^github\\.event\\.[a-z_.]+$",
+          "title": "Author Association",
+          "type": "string"
+        },
+        "evidence": {
+          "$ref": "#/$defs/Evidence"
+        },
+        "evidence_reason": {
+          "minLength": 1,
+          "pattern": "^[^\\n]+$",
+          "title": "Evidence Reason",
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Id",
+          "type": "string"
+        },
+        "source_url": {
+          "pattern": "^https://[^\\s]+$",
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_url",
+        "evidence",
+        "evidence_reason",
+        "id",
+        "author_association"
+      ],
+      "title": "Author",
+      "type": "object"
+    },
     "Context": {
       "additionalProperties": false,
       "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^\\S+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Author"
+        },
         "description": {
           "minLength": 1,
           "title": "Description",
@@ -48,6 +101,7 @@
         "id",
         "description",
         "source_category",
+        "author",
         "triggers"
       ],
       "title": "Context",
@@ -80,6 +134,19 @@
     "Trigger": {
       "additionalProperties": false,
       "properties": {
+        "author": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^\\S+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Author"
+        },
         "description": {
           "minLength": 1,
           "title": "Description",
@@ -114,6 +181,7 @@
         "evidence",
         "evidence_reason",
         "id",
+        "author",
         "description",
         "source_category"
       ],
@@ -125,6 +193,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "authors": {
+      "items": {
+        "$ref": "#/$defs/Author"
+      },
+      "title": "Authors",
+      "type": "array"
+    },
     "contexts": {
       "items": {
         "$ref": "#/$defs/Context"
@@ -147,6 +222,7 @@
   },
   "required": [
     "version",
+    "authors",
     "triggers",
     "contexts"
   ],
