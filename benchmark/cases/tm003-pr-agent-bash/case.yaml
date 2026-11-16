@@ -1,0 +1,9 @@
+id: tm003-pr-agent-bash
+description: >-
+  A pull_request_target workflow passes the pull request title to an AI agent whose tool
+  allow-list includes Bash, so untrusted text can steer an agent that runs commands.
+kind: vulnerable
+expected:
+  - rule: TM003
+    source: .github/workflows/review.yml:3
+    sink: .github/workflows/review.yml:15

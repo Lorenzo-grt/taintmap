@@ -1,0 +1,11 @@
+# Held-out cases. Never change a test case to improve a number (see docs/benchmark.md).
+dev: []
+test:
+  - tm001-comment-issue-author-gate
+  - tm001-comment-commenter-gate
+  - tm002-issue-agent-secret-env
+  - tm003-pr-agent-bash
+  - tm003-pr-agent-narrow-allowlist
+  - tm004-mcp-fetch-postgres
+  - tm005-issue-title-run
+  - tm005-issue-title-env

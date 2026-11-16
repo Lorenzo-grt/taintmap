@@ -1,0 +1,10 @@
+id: tm004-mcp-fetch-postgres
+description: >-
+  One agent's MCP config combines a fetch server, which returns untrusted web pages and can send
+  requests to any URL, with a database server reading a customer database. Source and sink are
+  both the fetch server: it brings the untrusted content in and gives the outbound path.
+kind: vulnerable
+expected:
+  - rule: TM004
+    source: .mcp.json:3
+    sink: .mcp.json:3

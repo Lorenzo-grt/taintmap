@@ -1,0 +1,15 @@
+name: Comment agent
+on:
+  issue_comment:
+    types: [created]
+jobs:
+  respond:
+    if: github.event.comment.author_association == 'OWNER'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: "Answer this comment: ${{ github.event.comment.body }}"

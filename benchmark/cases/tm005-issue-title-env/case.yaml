@@ -1,0 +1,6 @@
+id: tm005-issue-title-env
+description: >-
+  Safe twin of tm005-issue-title-run. The issue title reaches the run step only through the TITLE
+  environment variable, not through ${{ }} in the script.
+kind: safe
+expected: []

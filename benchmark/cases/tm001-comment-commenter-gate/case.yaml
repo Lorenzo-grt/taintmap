@@ -1,0 +1,6 @@
+id: tm001-comment-commenter-gate
+description: >-
+  Safe twin of tm001-comment-issue-author-gate. The if gate checks
+  github.event.comment.author_association, so only comments written by the owner reach the agent.
+kind: safe
+expected: []

@@ -1,0 +1,11 @@
+name: Label issue
+on:
+  issues:
+    types: [opened]
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          TITLE: ${{ github.event.issue.title }}
+        run: 'echo "New issue: $TITLE"'

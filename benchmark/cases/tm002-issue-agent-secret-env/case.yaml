@@ -1,0 +1,9 @@
+id: tm002-issue-agent-secret-env
+description: >-
+  An issues workflow passes the issue body to an AI agent whose step environment holds a deploy
+  token secret. Permissions are read-only, so only the secret makes this risky.
+kind: vulnerable
+expected:
+  - rule: TM002
+    source: .github/workflows/agent.yml:3
+    sink: .github/workflows/agent.yml:13

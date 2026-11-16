@@ -1,0 +1,6 @@
+id: tm003-pr-agent-narrow-allowlist
+description: >-
+  Safe twin of tm003-pr-agent-bash. The agent's explicit tool allow-list is limited to Read, Grep
+  and Glob, so it has no shell tool, and the job has only contents read permission.
+kind: safe
+expected: []

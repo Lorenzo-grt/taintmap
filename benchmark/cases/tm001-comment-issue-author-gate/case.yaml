@@ -1,0 +1,10 @@
+id: tm001-comment-issue-author-gate
+description: >-
+  An issue_comment workflow runs an AI agent with contents write permission. The if gate checks
+  github.event.issue.author_association, which says who opened the issue, not who wrote the
+  comment, so any commenter's text still reaches the agent.
+kind: vulnerable
+expected:
+  - rule: TM001
+    source: .github/workflows/agent.yml:3
+    sink: .github/workflows/agent.yml:10

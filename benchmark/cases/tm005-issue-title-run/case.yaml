@@ -1,0 +1,7 @@
+id: tm005-issue-title-run
+description: An issues workflow interpolates the issue title with ${{ }} directly into a run step.
+kind: vulnerable
+expected:
+  - rule: TM005
+    source: .github/workflows/label.yml:3
+    sink: .github/workflows/label.yml:9
