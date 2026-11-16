@@ -729,7 +729,7 @@ class _Workflow:
             self.run_step(step, step_id, run, [*inherited_env, *step_env], untrusted)
 
         if action:
-            self.agent_exec(step_id, line, action, attrs.get("tool_config", {}))
+            self.agent_exec(step_id, step, action, attrs.get("tool_config", {}))
 
         gate = self.gate(step, step_id)
         if gate is not None:
@@ -742,12 +742,19 @@ class _Workflow:
         return step_id
 
     def agent_exec(
-        self, step_id: str, line: int, action: AiAction, tool_config: dict[str, str]
+        self, step_id: str, step: CommentedMap, action: AiAction, tool_config: dict[str, str]
     ) -> None:
-        """A code-execution sink when the agent's tool config allows a shell tool."""
+        """A code-execution sink when the agent's tool config allows a shell tool.
+
+        The sink is located at the ``with:`` input that allows the tool (for example the
+        ``claude_args:`` line), because that line is what grants the agent command execution.
+        """
+        with_map = step["with"] if isinstance(step.get("with"), CommentedMap) else None
         for tool in action.code_exec_tools:
             pattern = re.compile(r"(?<![\w])" + re.escape(tool) + r"(?![\w])")
-            if any(pattern.search(value) for value in tool_config.values()):
+            granting = [name for name, value in tool_config.items() if pattern.search(value)]
+            if granting and with_map is not None:
+                line = key_line(with_map, granting[0])
                 exec_id = self.node(
                     f"{step_id}:agent_exec",
                     NodeKind.SINK,
@@ -755,6 +762,7 @@ class _Workflow:
                     f"agent tool {tool}",
                     line,
                     via_tool=tool,
+                    via_input=granting[0],
                     evidence=(action.code_exec_evidence or action.evidence).value,
                     evidence_reason=action.code_exec_reason or action.evidence_reason,
                 )

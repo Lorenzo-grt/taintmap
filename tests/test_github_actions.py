@@ -567,3 +567,30 @@ def test_env_passed_input_still_flows_to_other_sinks() -> None:
     assert control_can_block(control.category, "sink.code_exec", via_expression_injection=True)
     assert not control_can_block(control.category, "sink.secret.read")
     assert not control_can_block(control.category, "sink.repo.write")
+
+
+@pytest.mark.parametrize(
+    ("config_line", "expected_line", "via_input"),
+    [
+        ('          claude_args: --allowedTools "Bash(npm test)"\n', 9, "claude_args"),
+        ('          settings: \'{"permissions": {"allow": ["Bash"]}}\'\n', 9, "settings"),
+    ],
+)
+def test_agent_exec_sink_is_on_the_input_that_allows_the_shell_tool(
+    config_line: str, expected_line: int, via_input: str
+) -> None:
+    text = (
+        "on: issue_comment\n"
+        "jobs:\n"
+        "  agent:\n"
+        "    runs-on: ubuntu-latest\n"
+        "    steps:\n"
+        "      - uses: anthropics/claude-code-action@v1\n"
+        "        with:\n"
+        '          prompt: "hi"\n' + config_line
+    )
+    fragment = parse_workflow(parse_yaml(text, "wf.yml"))
+    (sink,) = [n for n in fragment.nodes if n.id.endswith(":agent_exec")]
+    assert sink.location.line == expected_line
+    assert sink.attrs["via_input"] == via_input
+    assert sink.attrs["via_tool"] == "Bash"

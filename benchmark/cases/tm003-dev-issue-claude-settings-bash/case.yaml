@@ -4,4 +4,4 @@ kind: vulnerable
 expected:
   - rule: TM003
     source: .github/workflows/triage.yml:2
-    sink: .github/workflows/triage.yml:10
+    sink: .github/workflows/triage.yml:13

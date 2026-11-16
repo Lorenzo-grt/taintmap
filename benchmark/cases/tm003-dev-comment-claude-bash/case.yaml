@@ -4,4 +4,4 @@ kind: vulnerable
 expected:
   - rule: TM003
     source: .github/workflows/agent.yml:1
-    sink: .github/workflows/agent.yml:8
+    sink: .github/workflows/agent.yml:10

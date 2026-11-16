@@ -7,4 +7,4 @@ expected:
     sink: .github/workflows/review.yml:12
   - rule: TM003
     source: .github/workflows/review.yml:1
-    sink: .github/workflows/review.yml:8
+    sink: .github/workflows/review.yml:11
