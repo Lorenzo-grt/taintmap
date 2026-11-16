@@ -165,7 +165,12 @@ class ParseWarning(_Model):
 
 
 class GraphFragment(_Model):
-    """The nodes and edges one parser produced from one file (or one group of files)."""
+    """The nodes and edges one parser produced from one file (or one group of files).
+
+    ``warnings`` carries parse problems from the parser to the report. The graph does not store
+    them, so they are not part of the graph's JSON export.
+    """
 
     nodes: list[Node] = Field(default_factory=list)
     edges: list[Edge] = Field(default_factory=list)
+    warnings: list[ParseWarning] = Field(default_factory=list)

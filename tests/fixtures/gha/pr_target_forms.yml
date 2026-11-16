@@ -1,0 +1,15 @@
+on:
+  - pull_request_target
+  - push
+permissions:
+  contents: read
+jobs:
+  forms:
+    runs-on: ubuntu-latest
+    steps:
+      - run: git checkout "${{ github.head_ref }}"
+      - run: echo "${{ github.event['pull_request']['title'] }}"
+      - env:
+          EVENT: ${{ toJSON(github.event) }}
+        run: echo "$EVENT"
+      - run: echo "${{ github.event.pull_request.number }}"

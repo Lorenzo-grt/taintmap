@@ -1,0 +1,24 @@
+on: [issues]
+permissions: {}
+env:
+  WF_TITLE: ${{ github.event.issue.title }}
+jobs:
+  safe:
+    runs-on: ubuntu-latest
+    env:
+      JOB_BODY: ${{ github.event.issue.body }}
+    steps:
+      - name: Step env
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: echo "$TITLE"
+      - name: Job env in braces
+        run: echo "${JOB_BODY}"
+      - name: Isolated and interpolated
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: echo "$TITLE ${{ github.event.issue.body }}"
+      - name: Unrelated variable
+        env:
+          NUMBER: ${{ github.event.issue.number }}
+        run: echo "$NUMBER"

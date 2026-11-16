@@ -164,7 +164,7 @@ class Graph:
         """Serialise the graph to JSON with a ``schema_version`` field."""
         payload = {
             "schema_version": JSON_SCHEMA_VERSION,
-            **self.to_fragment().model_dump(mode="json"),
+            **self.to_fragment().model_dump(mode="json", exclude={"warnings"}),
         }
         return json.dumps(payload, indent=indent, sort_keys=False, ensure_ascii=False)
 

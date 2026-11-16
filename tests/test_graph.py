@@ -172,3 +172,13 @@ def test_json_output_is_deterministic_regardless_of_insertion_order() -> None:
 def test_from_json_rejects_unknown_schema_version() -> None:
     with pytest.raises(GraphError, match="schema_version"):
         Graph.from_json('{"schema_version": 99, "nodes": [], "edges": []}')
+
+
+def test_warnings_are_not_part_of_the_graph_json() -> None:
+    from taintmap.model import ParseWarning
+
+    g = Graph()
+    warning = ParseWarning(file="wf.yml", line=3, message="invalid YAML")
+    g.add_fragment(GraphFragment(nodes=[node("a")], warnings=[warning]))
+    assert "warnings" not in g.to_json()
+    assert Graph.from_json(g.to_json()).nodes() == g.nodes()

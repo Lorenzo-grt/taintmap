@@ -1,0 +1,14 @@
+on: workflow_run
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - run: echo "${{ github.event.workflow_run.head_commit.message }}"
+  deploy_map:
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://example.invalid
+    steps:
+      - run: echo hi

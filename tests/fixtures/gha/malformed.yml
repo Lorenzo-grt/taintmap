@@ -1,0 +1,3 @@
+on: issues
+jobs:
+  a: [unclosed

@@ -76,7 +76,7 @@ and JSON round-trip.
 **Acceptance:** schema tests pass; every entry has a source link.
 
 ### T6. GitHub Actions parser
-- [ ] Parse workflows into nodes and edges:
+- [x] Parse workflows into nodes and edges:
   - triggers → `source` nodes when listed in the triggers catalog
   - jobs and steps → `carrier.workflow_step`; steps using a catalogued AI action → `carrier.llm_agent`
   - `${{ ... }}` expressions with untrusted contexts in `with:`, `env:` or `run:` → `passes_input` edges
@@ -88,7 +88,7 @@ and JSON round-trip.
   - `environment:` on a job → `control.human_approval` (note: required reviewers cannot be verified from
     the file; record it as "declared")
   - untrusted input passed via `env:` and referenced as `$VAR` in `run:` → `control.input_isolation`
-- [ ] Every node and edge has a location with a line number.
+- [x] Every node and edge has a location with a line number.
 
 **Acceptance:** tests with at least 8 small workflow fixtures covering each bullet.
 

@@ -1,0 +1,30 @@
+on:
+  issue_comment:
+  issues:
+    types: [labeled]
+jobs:
+  owner_only:
+    if: github.event.comment.author_association == 'OWNER' || github.event.comment.author_association == 'MEMBER'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "${{ github.event.comment.body }}"
+  from_json:
+    if: ${{ contains(fromJSON('["OWNER", "COLLABORATOR"]'), github.event.comment.author_association) }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  label_step:
+    runs-on: ubuntu-latest
+    steps:
+      - if: contains(github.event.issue.labels.*.name, 'agent-ok')
+        run: echo hi
+  bypassable:
+    if: github.event.comment.author_association == 'OWNER' || contains(github.event.comment.body, '/run')
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  negative:
+    if: github.event.comment.author_association != 'NONE'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi

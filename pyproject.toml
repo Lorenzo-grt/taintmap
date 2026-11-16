@@ -39,6 +39,9 @@ dev = [
 [project.scripts]
 taintmap = "taintmap.cli:app"
 
+[project.entry-points."taintmap.parsers"]
+github_actions = "taintmap.parsers.github_actions:GithubActionsParser"
+
 [project.urls]
 Homepage = "https://github.com/aakashsiwach/taintmap"
 

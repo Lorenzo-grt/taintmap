@@ -83,6 +83,9 @@ class Parser(Protocol):
     def parse(self, path: Path, root: Path) -> GraphFragment: ...
 ```
 
+A fragment also carries the parse warnings for its file (`GraphFragment.warnings`), so they reach the
+report; the graph does not store them and they are not part of the graph's JSON export.
+
 Parsers are registered through the `taintmap.parsers` entry-point group, so third-party packages can add
 parsers without changing taintmap. Built-in parsers for v0.1:
 
@@ -93,6 +96,23 @@ parsers without changing taintmap. Built-in parsers for v0.1:
 
 Planned: `java_spring` (v0.2), `taintmap_manifest` for hand-declared agents and tools (v0.2), and importers
 for SARIF from other scanners (v0.3).
+
+### GitHub Actions
+
+`parsers/github_actions.py` maps a workflow to the graph like this (its module docstring lists node ids):
+
+| Workflow element | Graph |
+|---|---|
+| Trigger in the triggers catalog | `source` node with the catalog's category |
+| Job, step | `carrier.workflow_step`; a step using a catalogued AI action is `carrier.llm_agent` |
+| `${{ }}` reading an untrusted context in `with:`, `env:` or `run:` | `passes_input` edge from each workflow trigger that fills the context; workflow and job `env:` feed the job, which passes input to its steps |
+| AI action with `reads_event: true` | `passes_input` from every untrusted trigger, even without an expression |
+| `run:` | `sink.code_exec` (`attrs.expression_injection` when untrusted input is interpolated) |
+| Effective `GITHUB_TOKEN` permissions | one sink per category the write scopes grant (`sink.repo.write`, `sink.deploy`, `sink.secret.read` for `id-token`). Job level overrides workflow level; with neither, the permissive default is assumed because the repository setting is not visible |
+| `secrets.*` in `env:` or `with:` | `sink.secret.read` (workflow and job level reach every step) |
+| `if:` requiring `author_association` OWNER, MEMBER or COLLABORATOR, or a label | `control.trusted_actor_gate`; every `\|\|` alternative must be such a check |
+| `environment:` | `control.human_approval`, recorded as declared but not verified (required reviewers live in repository settings) |
+| `run:` with no interpolation whose untrusted input arrives only through `env:` | `control.input_isolation` |
 
 ### Line numbers
 YAML is loaded with `ruamel.yaml` in round-trip mode, which keeps line information for every mapping and
@@ -157,7 +177,7 @@ src/taintmap/
   discover.py         file discovery with include/exclude
   taxonomy.py         category ids from threat-model.md and what each control blocks
   loaders/            yaml_lines.py, json_lines.py
-  parsers/            github_actions.py, mcp_config.py
+  parsers/            Parser protocol, github_actions.py, mcp_config.py
   catalog/            *.yaml data + loader + schemas
   link.py             cross-file linking
   controls.py         control evaluation

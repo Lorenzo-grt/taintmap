@@ -1,0 +1,22 @@
+on: pull_request_target
+permissions: read-all
+jobs:
+  inherits:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo hi
+  overrides:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
+      packages: write
+      issues: read
+    steps:
+      - run: echo hi
+  everything:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - run: echo hi
