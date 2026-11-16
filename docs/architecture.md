@@ -61,8 +61,12 @@ guards any node on that path and its category blocks the path's risk class (see 
 
 ### Finding
 `rule_id`, `severity` (`low`, `medium`, `high`, `critical`), `title`, `path` (ordered node ids),
-`evidence` (one location per hop), `missing_control`, `fix` (one or two sentences), `fingerprint`
-(stable hash of rule id + path node ids, used to track a finding across runs).
+`evidence` (one location per node on the path), `missing_control`, `fix` (one or two sentences),
+`inferred` (the path relies on an inferred catalog claim), `permissions_assumed` (the sink exists only
+because default token permissions were assumed), `via_servers` (MCP servers whose tool results carry the
+input), `related` and `related_evidence` (nodes a finding depends on that are not on its path, such as
+TM004's sensitive data), and `fingerprint` (stable hash of rule id + path node ids, used to track a
+finding across runs).
 
 ### Linking, controls and path search
 
@@ -188,7 +192,20 @@ entry does not validate.
 
 Rules live in `src/taintmap/rules/`, one module per rule, each with an id (`TM001`...), a title, the risk
 class it detects, a severity function and a fix template. A rule receives candidate paths and returns
-findings. Rules never parse files; they only read the graph.
+findings. Rules never parse files; they only read the graph. A test checks ids, titles and default
+severities against the table in the threat model.
+
+- TM001–TM003 report `untrusted source → … LLM agent … → sink` paths (write, secret, code execution).
+  An agent step can run commands when its tool config allows a tool listed in the AI action catalog's
+  `code_exec_tools` (for `claude-code-action`, `Bash` in `--allowedTools`).
+- TM004 groups paths by agent and source: when the same source reaches, through the same agent, both a
+  sensitive sink (`sink.data.read_sensitive` or `sink.secret.read`) and `sink.network.outbound`, one
+  finding is reported. Its path ends at the outbound sink and the sensitive sinks are in `related`.
+- TM005 reports paths through a workflow step to a `run:` script with interpolated untrusted input.
+- Each rule reports one finding per source and sink, choosing documented paths over inferred ones and
+  then the shortest.
+- A finding whose sink exists only because default token permissions were assumed is one severity level
+  lower than the rule's default, and its fix text ends with "Declare `permissions:` explicitly".
 
 ## Reporters
 

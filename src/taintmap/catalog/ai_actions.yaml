@@ -12,6 +12,9 @@
 # - reads_event: true when the action reads the triggering issue, pull request or comment itself,
 #   so untrusted event text reaches the agent even without an expression in `prompt_inputs`.
 #   When true, `reads_event_evidence` (documented | inferred) and `reads_event_reason` are required.
+# - code_exec_tools: tool names that let the agent run shell commands when its tool config allows
+#   them (e.g. `Bash` or `Bash(npm test)`). When not empty, `code_exec_evidence` and
+#   `code_exec_reason` are required.
 # - mcp_configs: MCP config files (relative to the repository root) the agent loads. Their servers
 #   are linked to the step only when the step's tool config allows them (`mcp__<server>`).
 #   When not empty, `mcp_configs_evidence` and `mcp_configs_reason` are required.
@@ -36,6 +39,11 @@ actions:
       - ssh_signing_key
     sandbox_inputs: []
     actor_gate_inputs: [allowed_bots, allowed_non_write_users]
+    code_exec_tools: [Bash]
+    code_exec_evidence: documented
+    code_exec_reason: >-
+      docs/configuration.md shows shell commands being allowed with --allowedTools "Bash(...)" in
+      claude_args.
     mcp_configs: [.mcp.json]
     mcp_configs_evidence: documented
     mcp_configs_reason: >-

@@ -35,6 +35,7 @@ from typing import Any, Literal
 from ruamel.yaml.comments import CommentedMap, CommentedSeq
 
 from taintmap import catalog
+from taintmap.catalog import AiAction
 from taintmap.loaders.yaml_lines import YamlDocument, item_line, key_line, load_yaml
 from taintmap.model import (
     Edge,
@@ -711,6 +712,9 @@ class _Workflow:
         if run is not None:
             self.run_step(step, step_id, run, [*inherited_env, *step_env], untrusted)
 
+        if action:
+            self.agent_exec(step_id, line, action, attrs.get("tool_config", {}))
+
         gate = self.gate(step, step_id)
         if gate is not None:
             self.edge(step_id, gate[0], EdgeKind.GUARDED_BY, gate[1])
@@ -720,6 +724,26 @@ class _Workflow:
                 update={"attrs": {**attrs, "untrusted_contexts": sorted(untrusted)}}
             )
         return step_id
+
+    def agent_exec(
+        self, step_id: str, line: int, action: AiAction, tool_config: dict[str, str]
+    ) -> None:
+        """A code-execution sink when the agent's tool config allows a shell tool."""
+        for tool in action.code_exec_tools:
+            pattern = re.compile(r"(?<![\w])" + re.escape(tool) + r"(?![\w])")
+            if any(pattern.search(value) for value in tool_config.values()):
+                exec_id = self.node(
+                    f"{step_id}:agent_exec",
+                    NodeKind.SINK,
+                    SinkCategory.CODE_EXEC.value,
+                    f"agent tool {tool}",
+                    line,
+                    via_tool=tool,
+                    evidence=(action.code_exec_evidence or action.evidence).value,
+                    evidence_reason=action.code_exec_reason or action.evidence_reason,
+                )
+                self.edge(step_id, exec_id, EdgeKind.INVOKES, line)
+                return
 
     def run_step(
         self,

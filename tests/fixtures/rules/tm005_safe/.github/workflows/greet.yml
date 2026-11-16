@@ -1,0 +1,11 @@
+on: pull_request_target
+permissions:
+  pull-requests: write
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Greet
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: echo "Thanks for $TITLE"

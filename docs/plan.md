@@ -111,10 +111,10 @@ and JSON round-trip.
 **Acceptance:** tests where a control blocks a path and where an unrelated control does not.
 
 ### T9. Rules TM001–TM005
-- [ ] One module per rule as specified in threat-model.md, each with title, severity, missing control and
+- [x] One module per rule as specified in threat-model.md, each with title, severity, missing control and
       fix text.
-- [ ] Stable fingerprints.
-- [ ] Findings that reach a sink only through assumed default token permissions
+- [x] Stable fingerprints.
+- [x] Findings that reach a sink only through assumed default token permissions
       (`attrs.permissions_assumed`) are one severity level lower, and their fix text says
       "declare `permissions:` explicitly".
 

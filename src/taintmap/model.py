@@ -48,6 +48,10 @@ class Severity(StrEnum):
         """Numeric order: ``low`` is 0, ``critical`` is 3."""
         return _SEVERITY_ORDER.index(self)
 
+    def lowered(self) -> Severity:
+        """One level lower; ``low`` stays ``low``."""
+        return _SEVERITY_ORDER[max(self.rank - 1, 0)]
+
 
 _SEVERITY_ORDER = (Severity.LOW, Severity.MEDIUM, Severity.HIGH, Severity.CRITICAL)
 
@@ -132,6 +136,13 @@ class Finding(_Model):
     """A path that a rule reports, with evidence for every hop and a suggested fix.
 
     ``fingerprint`` is computed from ``rule_id`` and ``path`` when not given.
+
+    * ``inferred``: the path relies on an inferred catalog claim; reports say so.
+    * ``permissions_assumed``: the sink exists only because default token permissions were
+      assumed; the severity is already one level lower than the rule's default.
+    * ``via_servers``: MCP servers whose tool results carry the input along the path.
+    * ``related``: further nodes the finding depends on that are not on ``path`` (for TM004, the
+      sensitive data the agent can read), with ``related_evidence`` giving their locations.
     """
 
     rule_id: str = Field(min_length=1)
@@ -141,6 +152,11 @@ class Finding(_Model):
     evidence: list[Location]
     missing_control: str
     fix: str
+    inferred: bool = False
+    permissions_assumed: bool = False
+    via_servers: list[str] = Field(default_factory=list)
+    related: list[str] = Field(default_factory=list)
+    related_evidence: list[Location] = Field(default_factory=list)
     fingerprint: str = ""
 
     @model_validator(mode="after")

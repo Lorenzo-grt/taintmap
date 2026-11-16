@@ -148,6 +148,9 @@ class AiAction(_Sourced):
     credential_inputs: list[Name]
     sandbox_inputs: list[Name]
     actor_gate_inputs: list[Name]
+    code_exec_tools: list[Name] = Field(default_factory=list)
+    code_exec_evidence: Evidence | None = None
+    code_exec_reason: Reason | None = None
     mcp_configs: list[Name] = Field(default_factory=list)
     mcp_configs_evidence: Evidence | None = None
     mcp_configs_reason: Reason | None = None
@@ -162,6 +165,8 @@ class AiAction(_Sourced):
             raise ValueError(f"{self.id}: an AI action needs prompt_inputs or reads_event")
         if self.reads_event and (self.reads_event_evidence is None or not self.reads_event_reason):
             raise ValueError(f"{self.id}: reads_event needs reads_event_evidence and a reason")
+        if self.code_exec_tools and (self.code_exec_evidence is None or not self.code_exec_reason):
+            raise ValueError(f"{self.id}: code_exec_tools needs code_exec_evidence and a reason")
         if self.mcp_configs and (self.mcp_configs_evidence is None or not self.mcp_configs_reason):
             raise ValueError(f"{self.id}: mcp_configs needs mcp_configs_evidence and a reason")
         for field in (

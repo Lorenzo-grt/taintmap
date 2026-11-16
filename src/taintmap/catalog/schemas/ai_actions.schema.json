@@ -17,6 +17,40 @@
           "title": "Category",
           "type": "string"
         },
+        "code_exec_evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Evidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "code_exec_reason": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^[^\\n]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Code Exec Reason"
+        },
+        "code_exec_tools": {
+          "items": {
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Code Exec Tools",
+          "type": "array"
+        },
         "credential_inputs": {
           "items": {
             "minLength": 1,
