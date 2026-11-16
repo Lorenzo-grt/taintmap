@@ -152,6 +152,7 @@ src/taintmap/
   model.py            Location, Node, Edge, Finding, GraphFragment
   graph.py            Graph wrapper, path search
   discover.py         file discovery with include/exclude
+  taxonomy.py         category ids from threat-model.md and what each control blocks
   loaders/            yaml_lines.py, json_lines.py
   parsers/            github_actions.py, mcp_config.py
   catalog/            *.yaml data + loader + schemas

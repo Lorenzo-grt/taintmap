@@ -55,9 +55,9 @@ and JSON round-trip.
 **Acceptance:** tests for nested keys, lists, duplicate-looking keys, CRLF files, and malformed input.
 
 ### T4. Threat-model taxonomy in code
-- [ ] `taxonomy.py`: the source, carrier, sink and control category ids from threat-model.md as constants
+- [x] `taxonomy.py`: the source, carrier, sink and control category ids from threat-model.md as constants
       or enums, plus which control categories block which risk classes.
-- [ ] A test that every category id mentioned in threat-model.md exists in code (parse the markdown table).
+- [x] A test that every category id mentioned in threat-model.md exists in code (parse the markdown table).
 
 **Acceptance:** taxonomy test passes; docs and code cannot drift silently.
 
