@@ -115,13 +115,28 @@ for SARIF from other scanners (v0.3).
 | `environment:` | `control.human_approval`, recorded as declared but not verified (required reviewers live in repository settings) |
 | `run:` with no interpolation whose untrusted input arrives only through `env:` | `control.input_isolation`, which blocks only `sink.code_exec` reached by expression injection; the input still flows to the step's other sinks |
 
+### MCP configs
+
+`parsers/mcp_config.py` reads `mcpServers`, and the `servers` key VS Code uses, from the supported files.
+Each file's client (`.mcp.json` Claude Code, `.cursor/mcp.json` Cursor, `.vscode/mcp.json` VS Code,
+`claude_desktop_config.json` Claude Desktop) is one `carrier.llm_agent` that `can_call` each server.
+
+| Config element | Graph |
+|---|---|
+| Server entry | `carrier.mcp_server`, matched to the MCP catalog by package, image or URL |
+| Catalogued `source.untrusted.*` capability | `source` node that passes input straight to the client (tool results; `attrs.server` names the server), so a path can read through a server and act through the same one |
+| Catalogued `sink.*` capability | `sink` node reached from the server |
+| Unknown server | `attrs.unknown = true` and an info-level note (`ParseWarning.level = "info"`), never a finding |
+| Literal secret-looking value in `env` or `headers` (not `${...}`, `$VAR` or `<placeholder>`) | `sink.secret.read` with `attrs.hardcoded = true`; only the key name is recorded |
+| `${...}` references under credential-looking keys | `attrs.credential_references` on the server (key names only) |
+
 ### Line numbers
 YAML is loaded with `ruamel.yaml` in round-trip mode, which keeps line information for every mapping and
 sequence item. JSON has no line information in the standard library, so `src/taintmap/loaders/json_lines.py`
 provides a small locator that maps a JSON pointer to its line by scanning tokens. Evidence without a line
 number is a bug.
 
-Malformed files never crash a scan: the loaders return a parse warning (file, line, message) instead.
+Malformed files never crash a scan: the loaders return a parse warning (file, line, message, level) instead.
 Warning messages name keys but never quote values, so a secret in a broken file is not echoed. YAML is
 read as YAML 1.2 (`on:` stays a string) and duplicate keys are an error. JSON must be strict (no comments
 or trailing commas); when a JSON object repeats a key, the last value is used and a warning is raised.

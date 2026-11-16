@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      }
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": ["mcp-server-fetch"]
+    },
+    "internal-tools": {
+      "command": "node",
+      "args": ["./tools/server.js"],
+      "env": {
+        "LOG_LEVEL": "debug"
+      }
+    }
+  }
+}

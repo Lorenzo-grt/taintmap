@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "files": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem@2025.1.1", "/workspace"],
+      "env": {
+        "SERVICE_API_KEY": "FAKE_TOKEN_FOR_TESTS",
+        "UPSTREAM": "ghp_FAKE_TOKEN_FOR_TESTS",
+        "ROOT_DIR": "/workspace",
+        "EMPTY_TOKEN": "",
+        "PLACEHOLDER_TOKEN": "<YOUR_TOKEN>"
+      }
+    }
+  }
+}

@@ -8,7 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -154,15 +154,17 @@ class Finding(_Model):
 
 
 class ParseWarning(_Model):
-    """A file that could not be read or parsed. Reported to the user; never a crash.
+    """A problem or note about a scanned file. Reported to the user; never a crash, never a finding.
 
-    Messages must never contain values from the file, only key names, so that secrets in a
-    malformed file are not echoed.
+    ``level`` is ``warning`` for files that could not be read or parsed as expected and ``info``
+    for notes such as an MCP server taintmap does not know. Messages must never contain values
+    from the file, only key names, so that secrets are not echoed.
     """
 
     file: str = Field(min_length=1)
     line: int = Field(ge=1)
     message: str
+    level: Literal["warning", "info"] = "warning"
 
     @field_validator("file")
     @classmethod

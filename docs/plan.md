@@ -93,12 +93,12 @@ and JSON round-trip.
 **Acceptance:** tests with at least 8 small workflow fixtures covering each bullet.
 
 ### T7. MCP config parser
-- [ ] Parse `mcpServers` (and the `servers` key used by some clients) from supported files.
-- [ ] Each server → `carrier.mcp_server` node; capabilities from the MCP catalog → sink/source nodes.
-- [ ] Unknown servers → a node with `attrs.unknown = true` and an info-level note, not a finding.
-- [ ] Literal secret-looking values in `env` (not `${...}` references) → `sink.secret.read` with
+- [x] Parse `mcpServers` (and the `servers` key used by some clients) from supported files.
+- [x] Each server → `carrier.mcp_server` node; capabilities from the MCP catalog → sink/source nodes.
+- [x] Unknown servers → a node with `attrs.unknown = true` and an info-level note, not a finding.
+- [x] Literal secret-looking values in `env` (not `${...}` references) → `sink.secret.read` with
       `attrs.hardcoded = true`. Never print the value; show only the key name.
-- [ ] The client that loads the config → one `carrier.llm_agent` node connected to all its servers.
+- [x] The client that loads the config → one `carrier.llm_agent` node connected to all its servers.
 
 **Acceptance:** fixtures for each supported file format; tests for unknown servers and hardcoded secrets.
 

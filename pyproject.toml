@@ -41,6 +41,7 @@ taintmap = "taintmap.cli:app"
 
 [project.entry-points."taintmap.parsers"]
 github_actions = "taintmap.parsers.github_actions:GithubActionsParser"
+mcp_config = "taintmap.parsers.mcp_config:McpConfigParser"
 
 [project.urls]
 Homepage = "https://github.com/aakashsiwach/taintmap"
