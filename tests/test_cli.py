@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import errno
 import json
 import os
+import subprocess
+import sys
 from importlib.metadata import version
 from pathlib import Path
 
 import pytest
+from rich.text import Text
 from typer.testing import CliRunner
 
 from taintmap.cli import EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, app
@@ -201,9 +205,16 @@ def test_json_report_fields() -> None:
         ),
     ],
 )
+@pytest.mark.parametrize("terminal", [False, True])
 def test_quiet_prints_only_summary_and_preserves_exit_codes(
-    repo: str, options: list[str], expected_code: int, expected_summary: str
+    repo: str,
+    options: list[str],
+    expected_code: int,
+    expected_summary: str,
+    terminal: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr("rich.console.Console.is_terminal", property(lambda self: terminal))
     code, output = scan(str(REPOS / repo), "--quiet", *options)
     assert code == expected_code
     assert output == expected_summary + "\n"
@@ -219,17 +230,30 @@ def test_quiet_output_file(tmp_path: Path) -> None:
     )
 
 
+@pytest.mark.parametrize(
+    "render_env",
+    [
+        {"NO_COLOR": "1", "TERM": "dumb", "COLUMNS": "200"},
+        {"NO_COLOR": None, "GITHUB_ACTIONS": "true", "FORCE_COLOR": "1", "COLUMNS": "40"},
+    ],
+)
 def test_quiet_json_conflict_is_a_usage_error_before_scanning(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, render_env: dict[str, str | None]
 ) -> None:
     def unexpected_scan(*args: object, **kwargs: object) -> None:
         pytest.fail("conflicting flags must be rejected before scanning")
 
     monkeypatch.setattr("taintmap.cli.run_scan", unexpected_scan)
     target = tmp_path / "report.json"
-    code, output = scan(str(DEMO), "--quiet", "--format", "json", "--output", str(target))
-    assert code == EXIT_ERROR
-    assert "--quiet cannot be used with --format json" in output
+    result = runner.invoke(
+        app,
+        ["scan", str(DEMO), "--quiet", "--format", "json", "--output", str(target)],
+        env=render_env,
+        color=True,
+    )
+    assert result.exit_code == EXIT_ERROR
+    message = Text.from_ansi(result.output).plain.translate(str.maketrans({"│": " ", "|": " "}))
+    assert "--quiet cannot be used with --format json" in " ".join(message.split())
     assert not target.exists()
 
 
@@ -311,3 +335,124 @@ def test_bad_option_exits_2() -> None:
     assert code == EXIT_ERROR
     code, _ = scan(str(DEMO), "--include", "")
     assert code == EXIT_ERROR
+
+
+_CLOSED_STDOUT = """
+import sys
+from taintmap.cli import app
+
+error_number, platform, phase, *args = sys.argv[1:]
+stream = sys.stdout
+
+class ClosedStdout:
+    failed = False
+
+    def __getattr__(self, name):
+        return getattr(stream, name)
+
+    def write(self, text):
+        if phase == 'write' and not self.failed:
+            self.failed = True
+            raise OSError(int(error_number), 'simulated stdout failure')
+        return stream.write(text)
+
+    def flush(self):
+        if phase == 'flush' and not self.failed:
+            self.failed = True
+            raise OSError(int(error_number), 'simulated stdout failure')
+        return stream.flush()
+
+sys.stdout = ClosedStdout()
+sys.platform = platform
+app(args)
+"""
+
+
+@pytest.mark.parametrize("output_format", ["terminal", "json"])
+@pytest.mark.parametrize("phase", ["write", "flush"])
+@pytest.mark.parametrize(
+    "error_number,platform", [(errno.EINVAL, "win32"), (errno.EPIPE, sys.platform)]
+)
+@pytest.mark.parametrize(
+    "fixture,expected", [("notes_only", EXIT_OK), ("demo", EXIT_FINDINGS), ("broken", EXIT_ERROR)]
+)
+def test_closed_stdout_keeps_scan_exit_code(
+    output_format: str, phase: str, error_number: int, platform: str, fixture: str, expected: int
+) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _CLOSED_STDOUT,
+            str(error_number),
+            platform,
+            phase,
+            "scan",
+            str(REPOS / fixture),
+            "--format",
+            output_format,
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+    )
+    assert result.returncode == expected, result.stderr
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize(
+    "error_number,platform", [(errno.EACCES, "win32"), (errno.EINVAL, "linux")]
+)
+def test_other_stdout_errors_are_not_suppressed(error_number: int, platform: str) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _CLOSED_STDOUT,
+            str(error_number),
+            platform,
+            "write",
+            "scan",
+            str(REPOS / "notes_only"),
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+    )
+    assert result.returncode != EXIT_OK
+    assert "simulated stdout failure" in result.stderr
+
+
+@pytest.mark.parametrize("output_format", ["terminal", "json"])
+def test_report_file_errors_are_not_suppressed(tmp_path: Path, output_format: str) -> None:
+    result = runner.invoke(
+        app,
+        [
+            "scan",
+            str(REPOS / "notes_only"),
+            "--format",
+            output_format,
+            "--output",
+            str(tmp_path / "missing" / "report"),
+        ],
+    )
+    assert isinstance(result.exception, OSError)
+
+
+@pytest.mark.parametrize("output_format", ["terminal", "json"])
+def test_closed_pipe_at_process_exit_has_no_traceback(output_format: str) -> None:
+    with subprocess.Popen(
+        [sys.executable, "-m", "taintmap", "scan", str(DEMO), "--format", output_format],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    ) as process:
+        assert process.stdout is not None
+        process.stdout.close()
+        process.stdout = None
+        _, stderr = process.communicate(timeout=30)
+    assert process.returncode == EXIT_FINDINGS, stderr
+    assert stderr == b""

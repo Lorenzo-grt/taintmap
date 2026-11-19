@@ -7,7 +7,10 @@ findings). Info notes, such as an unknown MCP server, never change the exit code
 
 from __future__ import annotations
 
+import errno
 import io
+import os
+import sys
 from collections.abc import Sequence
 from enum import StrEnum
 from importlib.metadata import version as _dist_version
@@ -121,7 +124,7 @@ def scan(
         if output:
             output.write_text(text, encoding="utf-8")
         else:
-            typer.echo(text, nl=False)
+            write_stdout(text)
     elif output:
         buffer = io.StringIO()
         terminal.render(
@@ -129,9 +132,39 @@ def scan(
         )
         output.write_text(buffer.getvalue(), encoding="utf-8")
     else:
-        terminal.render(result, Console(highlight=False, soft_wrap=True), min_severity, quiet=quiet)
+        console = Console(highlight=False, soft_wrap=True)
+        if console.is_terminal:
+            terminal.render(result, console, min_severity, quiet=quiet)
+        else:
+            buffer = io.StringIO()
+            terminal.render(
+                result,
+                Console(
+                    file=buffer,
+                    width=console.width,
+                    color_system=None,
+                    highlight=False,
+                    soft_wrap=True,
+                ),
+                min_severity,
+                quiet=quiet,
+            )
+            write_stdout(buffer.getvalue())
 
     raise typer.Exit(exit_code(result.findings, result.parse_errors, fail_on))
+
+
+def write_stdout(text: str) -> None:
+    """Stop quietly on a closed pipe, including Windows' EINVAL for this case."""
+    try:
+        sys.stdout.write(text)
+        sys.stdout.flush()
+    except OSError as exc:
+        if exc.errno != errno.EPIPE and not (sys.platform == "win32" and exc.errno == errno.EINVAL):
+            raise
+        # Prevent Python's final flush from raising again and replacing the scan exit code.
+        with open(os.devnull, "w", encoding="utf-8") as sink:
+            os.dup2(sink.fileno(), sys.stdout.fileno())
 
 
 def exit_code(

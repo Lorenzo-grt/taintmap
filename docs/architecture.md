@@ -251,6 +251,8 @@ It does not change exit codes. Combining `--quiet` with `--format json` is a usa
 Exit codes: `0` no findings at or above `--fail-on`, `1` findings found, `2` usage or parse error.
 Findings take precedence: a scan with failing findings and a broken file exits `1`, and one with only a
 broken file exits `2`. Info notes (such as an unknown MCP server) never change the exit code.
+If a pipe reader closes early, `scan` stops writing quietly and keeps the exit code from its findings
+and parse errors. Other output errors, including failures writing a report file, are still reported.
 `--min-severity` (default `info`) only filters the report; `--fail-on` (default `low`) looks at every finding, and
 `never` makes the scan report-only. `--default-token-permissions` (default `write`) is what the
 `GITHUB_TOKEN` may do in workflows that declare no permissions; such findings are one severity level
